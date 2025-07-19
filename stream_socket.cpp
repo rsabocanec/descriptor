@@ -76,9 +76,7 @@ std::expected<acceptor, int32_t> stream_socket::accept() const noexcept {
 
     std::string peer_address{buffer.data()};
 
-    acceptor a{result, std::move(peer_address), ::ntohs(client_address.sin_port)};
-
-    return std::move(a);
+    return acceptor{result, std::move(peer_address), ::ntohs(client_address.sin_port)};
 }
 
 int32_t stream_socket::connect(std::string_view address, uint16_t port) noexcept {

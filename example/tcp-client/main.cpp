@@ -18,10 +18,15 @@ auto main()->int {
             std::cerr << "write failed; " << rsabocanec::descriptor::error_description(std::get<0>(io_result)) << '\n';
         }
         else {
+            std::cout << "Sent '" << request << "'\n";
+
             std::array<char, 24> response{};
             io_result = client.read(std::as_writable_bytes(std::span<char>(response)));
             if (std::get<0>(io_result) != 0) {
                 std::cerr << "read failed; " << rsabocanec::descriptor::error_description(std::get<0>(io_result)) << '\n';
+            }
+            else {
+                std::cout << "Received '" << std::string_view(response.cbegin(), std::get<1>(io_result)) << "'\n";
             }
         }
     }

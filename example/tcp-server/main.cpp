@@ -24,15 +24,20 @@ auto main()->int {
                 auto &acceptor = accept_result.value();
 
                 std::array<char, 24> request{};
-                auto io_result = server.read(std::as_writable_bytes(std::span<char>(request)));
+                auto io_result = acceptor.read(std::as_writable_bytes(std::span<char>(request)));
                 if (std::get<0>(io_result) != 0) {
                     std::cerr << "read failed; " << rsabocanec::descriptor::error_description(std::get<0>(io_result)) << '\n';
                 }
                 else {
-                    const std::string_view response{"Hello world!"};
-                    auto io_result = server.write(std::as_bytes(std::span<const char>(response.cbegin(), response.cend())));
+                    const std::string_view response(request.cbegin(), std::get<1>(io_result));
+                    std::cout << "Received '" << response << "'\n";
+
+                    io_result = acceptor.write(std::as_bytes(std::span<const char>(response.cbegin(), response.cend())));
                     if (std::get<0>(io_result) != 0) {
                         std::cerr << "write failed; " << rsabocanec::descriptor::error_description(std::get<0>(io_result)) << '\n';
+                    }
+                    else {
+                        std::cout << "Sent '" << response << "'\n";
                     }
                 }
             }
