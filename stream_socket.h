@@ -1,0 +1,54 @@
+#ifndef RSABOCANEC_STREAM_SOCKET_H
+#define RSABOCANEC_STREAM_SOCKET_H
+
+#pragma once
+
+#include "bound_socket.h"
+
+#include <string>
+#include <expected>
+
+namespace rsabocanec {
+
+class acceptor : public socket {
+    std::string peer_address_{};
+    uint16_t peer_port_{};
+
+public:
+    acceptor() = delete;
+
+    explicit acceptor(int32_t descriptor) noexcept
+    : socket(descriptor){
+    }
+
+    explicit acceptor(int32_t descriptor, std::string&& peer_address, uint16_t peer_port) noexcept
+    : socket(descriptor)
+    , peer_address_(std::move(peer_address))
+    , peer_port_(peer_port) {
+    }
+
+    [[nodiscard]] int32_t open() noexcept final {
+        return 0;
+    }
+};
+
+class stream_socket : public bound_socket {
+public:
+    static constexpr std::size_t max_connection_count{12ull};
+
+    stream_socket() = default;
+
+    [[nodiscard]] int32_t bind(std::string_view address, uint16_t port = 0) noexcept override;
+    [[nodiscard]] int32_t listen(int32_t max_connections = max_connection_count) const noexcept;
+
+    [[nodiscard]] std::expected<acceptor, int32_t> accept() const noexcept;
+
+    [[nodiscard]] int32_t connect(std::string_view address, uint16_t port) noexcept;
+    [[nodiscard]] int32_t disconnect() noexcept {
+        return close();
+    }
+};
+
+} // rsabocanec
+
+#endif //RSABOCANEC_STREAM_SOCKET_H
