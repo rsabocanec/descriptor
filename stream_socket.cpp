@@ -47,6 +47,10 @@ int32_t stream_socket::listen(int32_t max_connections) const noexcept {
         return -1;
     }
 
+    if (max_connections == -1) {
+        max_connections = SOMAXCONN;
+    }
+
     if (::listen(descriptor_, max_connections) == -1) {
         return errno;
     }

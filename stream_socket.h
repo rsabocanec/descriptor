@@ -34,12 +34,10 @@ public:
 
 class stream_socket : public bound_socket {
 public:
-    static constexpr std::size_t max_connection_count{12ull};
-
     stream_socket() = default;
 
     [[nodiscard]] int32_t bind(std::string_view address, uint16_t port = 0) noexcept override;
-    [[nodiscard]] int32_t listen(int32_t max_connections = max_connection_count) const noexcept;
+    [[nodiscard]] int32_t listen(int32_t max_connections = -1) const noexcept;
 
     [[nodiscard]] std::expected<acceptor, int32_t> accept() const noexcept;
 
