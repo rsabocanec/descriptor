@@ -12,24 +12,25 @@ Redistribution and use in source and binary forms, with or without modification,
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef RSABOCANEC_DATAGRAM_SOCKET_H
-#define RSABOCANEC_DATAGRAM_SOCKET_H
+#ifndef RSABOCANEC_LOCAL_STREAM_SOCKET_H
+#define RSABOCANEC_LOCAL_STREAM_SOCKET_H
 
-#include "socket.h"
+#pragma once
+
+#include "stream_socket.h"
 
 namespace rsabocanec {
 
-class datagram_socket : public socket {
-public:
-    [[nodiscard]] int32_t read_from() const noexcept {
-        return -1;
-    }
+class local_stream_socket : public stream_socket {
 
-    [[nodiscard]] int32_t write_to() const noexcept {
-        return -1;
-    }
+    local_stream_socket() = default;
+
+    [[nodiscard]] int32_t open() noexcept final;
+    [[nodiscard]] int32_t bind(std::string_view address) noexcept final;
+    [[nodiscard]] std::expected<acceptor, int32_t> accept() const noexcept final;
+    [[nodiscard]] int32_t connect(std::string_view address) noexcept final;
 };
 
 } // rsabocanec
 
-#endif //RSABOCANEC_DATAGRAM_SOCKET_H
+#endif //RSABOCANEC_LOCAL_STREAM_SOCKET_H

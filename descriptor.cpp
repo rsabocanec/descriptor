@@ -34,7 +34,7 @@ std::tuple<int32_t, int32_t> descriptor::read(std::span<std::byte> buffer) const
     return result;
 }
 
-    std::tuple<int32_t, int32_t> descriptor::write(std::span<const std::byte> buffer) const noexcept {
+std::tuple<int32_t, int32_t> descriptor::write(std::span<const std::byte> buffer) const noexcept {
     std::tuple<int32_t, std::size_t> result {EINVAL, -1};
 
     if (descriptor_ != -1) {

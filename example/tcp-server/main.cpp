@@ -49,17 +49,21 @@ auto main()->int {
                     std::cout << "New connection from " << acceptor.peer() << ':' << acceptor.peer_port() << '\n';
 
                     std::array<char, 24> request{};
-                    auto io_result = acceptor.read(std::as_writable_bytes(std::span<char>(request)));
-                    if (std::get<0>(io_result) != 0) {
-                        std::cerr << "read failed; " << rsabocanec::descriptor::error_description(std::get<0>(io_result)) << '\n';
+                    auto const [read_result, bytes_read] =
+                        acceptor.read(std::as_writable_bytes(std::span<char>(request)));
+
+                    if (read_result != 0) {
+                        std::cerr << "read failed; " << rsabocanec::descriptor::error_description(read_result) << '\n';
                     }
                     else {
-                        const std::string_view response(request.cbegin(), std::get<1>(io_result));
+                        const std::string_view response(request.cbegin(), bytes_read);
                         std::cout << "Received '" << response << "'\n";
 
-                        io_result = acceptor.write(std::as_bytes(std::span<const char>(response.cbegin(), response.cend())));
-                        if (std::get<0>(io_result) != 0) {
-                            std::cerr << "write failed; " << rsabocanec::descriptor::error_description(std::get<0>(io_result)) << '\n';
+                        auto const [write_result, bytes_written] =
+                            acceptor.write(std::as_bytes(std::span<const char>(response.cbegin(), response.cend())));
+
+                        if (write_result != 0) {
+                            std::cerr << "write failed; " << rsabocanec::descriptor::error_description(write_result) << '\n';
                         }
                         else {
                             std::cout << "Sent '" << response << "'\n";
