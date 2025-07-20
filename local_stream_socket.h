@@ -22,7 +22,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 namespace rsabocanec {
 
 class local_stream_socket : public stream_socket {
-
+public:
     local_stream_socket() = default;
 
     [[nodiscard]] int32_t open() noexcept final;

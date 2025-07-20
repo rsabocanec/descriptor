@@ -41,11 +41,6 @@ public:
     , peer_port_(peer_port) {
     }
 
-    explicit acceptor(int32_t descriptor, std::string&& peer_address) noexcept
-    : socket(descriptor)
-    , peer_address_(std::forward<std::string>(peer_address)) {
-    }
-
     acceptor(const acceptor&) = delete;
     acceptor(acceptor&&) = default;
 

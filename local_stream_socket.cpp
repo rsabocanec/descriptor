@@ -50,19 +50,17 @@ std::expected<acceptor, int32_t> local_stream_socket::accept() const noexcept {
     }
 
     struct sockaddr_un client_address{};
-    socklen_t client_length{sizeof(client_address)};
+    socklen_t client_address_length{sizeof(client_address)};
 
     auto const result =
         ::accept(descriptor_,
-            static_cast<sockaddr *>(static_cast<void *>(&client_address)), &client_length);
+            static_cast<sockaddr *>(static_cast<void *>(&client_address)), &client_address_length);
 
     if (result == -1) {
         return std::unexpected(errno);
     }
 
-    std::string peer_address{client_address.sun_path};
-
-    return acceptor{result, std::move(peer_address)};
+    return acceptor{result};
 }
 
 int32_t local_stream_socket::connect(std::string_view address) noexcept {

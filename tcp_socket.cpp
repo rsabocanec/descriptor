@@ -57,11 +57,11 @@ std::expected<acceptor, int32_t> tcp_socket::accept() const noexcept {
     }
 
     struct sockaddr_in client_address{};
-    socklen_t client_length{sizeof(client_address)};
+    socklen_t client_address_length{sizeof(client_address)};
 
     auto const result =
         ::accept(descriptor_,
-            static_cast<sockaddr *>(static_cast<void *>(&client_address)), &client_length);
+            static_cast<sockaddr *>(static_cast<void *>(&client_address)), &client_address_length);
 
     if (result == -1) {
         return std::unexpected(errno);

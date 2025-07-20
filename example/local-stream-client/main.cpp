@@ -1,19 +1,19 @@
-#include <tcp_socket.h>
+#include <local_stream_socket.h>
 
 #include <array>
 #include <iostream>
 #include <span>
 
 auto main()->int {
-    rsabocanec::tcp_socket client{};
+    rsabocanec::local_stream_socket client{};
 
-    auto result = client.connect("127.0.0.1", 9999);
+    auto result = client.connect("/tmp/local");
     if (result != 0) {
         std::cerr << "connect failed; " << rsabocanec::descriptor::error_description(result) << '\n';
     }
     else {
         const std::string_view request{"Hello world!"};
-        auto const [write_result, bytes_written] = client.write(std::as_bytes(std::span<const char>(request.cbegin(), request.cend())));
+        auto [write_result, bytes_written]  = client.write(std::as_bytes(std::span<const char>(request.cbegin(), request.cend())));
         if (write_result != 0) {
             std::cerr << "write failed; " << rsabocanec::descriptor::error_description(write_result) << '\n';
         }
