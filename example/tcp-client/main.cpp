@@ -1,8 +1,9 @@
 #include <tcp_socket.h>
 
 #include <array>
-#include <iostream>
 #include <span>
+
+#include <iostream>
 
 auto main()->int {
     rsabocanec::tcp_socket client{};

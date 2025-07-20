@@ -1,8 +1,9 @@
 #include <local_stream_socket.h>
 
 #include <array>
-#include <iostream>
 #include <span>
+
+#include <iostream>
 
 auto main()->int {
     rsabocanec::local_stream_socket client{};
