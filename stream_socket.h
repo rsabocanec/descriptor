@@ -27,8 +27,26 @@ public:
     , peer_port_(peer_port) {
     }
 
+    acceptor(const acceptor&) = delete;
+    acceptor(acceptor&&) = default;
+
+    acceptor& operator=(const acceptor&) = delete;
+    acceptor& operator=(acceptor&&) = default;
+
+    ~acceptor() noexcept override {
+        [[maybe_unused]] auto const result = socket::shutdown();
+    }
+
     [[nodiscard]] int32_t open() noexcept final {
         return 0;
+    }
+
+    [[nodiscard]] std::string_view peer() const noexcept {
+        return peer_address_;
+    }
+
+    [[nodiscard]] uint16_t peer_port() const noexcept {
+        return peer_port_;
     }
 };
 
