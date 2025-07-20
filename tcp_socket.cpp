@@ -46,7 +46,7 @@ int32_t tcp_socket::bind(std::string_view address, uint16_t port) noexcept {
                     static_cast<const struct sockaddr *>(static_cast<const void*>(&server_address)),
                     sizeof(server_address)) == -1) {
         return errno;
-                    }
+    }
 
     return 0;
 }

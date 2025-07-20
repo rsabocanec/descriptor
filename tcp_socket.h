@@ -19,29 +19,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #include "stream_socket.h"
 
-#include <algorithm>
-#include <charconv>
-
 namespace rsabocanec {
-
-std::tuple<int32_t, std::string_view, uint16_t> parse_address(std::string_view address) noexcept {
-    std::tuple<int32_t, std::string_view, uint16_t> result{EINVAL, {}, 0};
-
-    auto pos = std::find(address.cbegin(), address.cend(), ':');
-    if (pos == address.cend()) {
-        return result;
-    }
-
-    const std::string_view pure_address(address.cbegin(), pos);
-
-    uint16_t port{};
-
-    if (std::from_chars(++pos, address.cend(), port).ec == std::errc{}) {
-        result = {0, pure_address, port};
-    }
-
-    return result;
-}
 
 class tcp_socket : public stream_socket {
 public:

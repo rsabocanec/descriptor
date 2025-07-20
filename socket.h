@@ -15,11 +15,33 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #ifndef RSABOCANEC_SOCKET_H
 #define RSABOCANEC_SOCKET_H
 
-#pragma onca
+#pragma once
 
 #include "descriptor.h"
 
+#include <algorithm>
+#include <charconv>
+
 namespace rsabocanec {
+
+[[nodiscard]] inline std::tuple<int32_t, std::string_view, uint16_t> parse_address(std::string_view address) noexcept {
+    std::tuple<int32_t, std::string_view, uint16_t> result{EINVAL, {}, 0};
+
+    auto pos = std::ranges::find(address, ':');
+    if (pos == address.cend()) {
+        return result;
+    }
+
+    const std::string_view pure_address(address.cbegin(), pos);
+
+    uint16_t port{};
+
+    if (std::from_chars(++pos, address.cend(), port).ec == std::errc{}) {
+        result = {0, pure_address, port};
+    }
+
+    return result;
+}
 
 class socket : public descriptor {
 public:

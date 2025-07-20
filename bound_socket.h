@@ -25,8 +25,6 @@ namespace rsabocanec {
 
 class bound_socket : public socket {
 public:
-    bound_socket() = default;
-
     [[nodiscard]] virtual int32_t bind(std::string_view address) noexcept = 0;
 };
 

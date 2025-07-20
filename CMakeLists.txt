@@ -9,7 +9,8 @@ add_library(descriptor SHARED descriptor.cpp
         tcp_socket.cpp
         bound_socket.cpp
         datagram_socket.cpp
-        local_stream_socket.cpp)
+        local_stream_socket.cpp
+        udp_socket.cpp)
 
 add_library(descriptor-static STATIC descriptor.cpp
         socket.cpp
@@ -17,7 +18,8 @@ add_library(descriptor-static STATIC descriptor.cpp
         tcp_socket.cpp
         bound_socket.cpp
         datagram_socket.cpp
-        local_stream_socket.cpp)
+        local_stream_socket.cpp
+        udp_socket.cpp)
 
 set_target_properties(descriptor-static PROPERTIES OUTPUT_NAME descriptor)
 
