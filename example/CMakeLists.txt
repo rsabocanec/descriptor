@@ -7,3 +7,6 @@ add_subdirectory(tcp-server)
 
 add_subdirectory(local-stream-client)
 add_subdirectory(local-stream-server)
+
+add_subdirectory(udp-client)
+add_subdirectory(udp-server)

@@ -58,7 +58,7 @@ int32_t udp_socket::bind(std::string_view address, uint16_t port) noexcept {
 
 std::tuple<int32_t, int32_t> udp_socket::read_from(
         std::span<std::byte> buffer, std::string &address, uint16_t &port) const noexcept {
-    std::tuple<int32_t, std::size_t> result {EINVAL, -1};
+    std::tuple<int32_t, std::size_t> result {0, -1};
 
     if (descriptor_ != -1) {
         struct sockaddr_in peer_address{
