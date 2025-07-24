@@ -50,7 +50,7 @@ auto main()->int {
 
                     std::array<char, 24> request{};
                     auto const [read_result, bytes_read] =
-                        acceptor.read(std::as_writable_bytes(std::span<char>(request)));
+                        acceptor.read(request);
 
                     if (read_result != 0) {
                         std::cerr << "read failed; " << rsabocanec::descriptor::error_description(read_result) << '\n';
@@ -60,7 +60,7 @@ auto main()->int {
                         std::cout << "Received '" << response << "'\n";
 
                         auto const [write_result, bytes_written] =
-                            acceptor.write(std::as_bytes(std::span<const char>(response.cbegin(), response.cend())));
+                            acceptor.write(response.cbegin(), response.cend());
 
                         if (write_result != 0) {
                             std::cerr << "write failed; " << rsabocanec::descriptor::error_description(write_result) << '\n';

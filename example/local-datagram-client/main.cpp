@@ -1,22 +1,22 @@
-#include <udp_socket.h>
+#include <local_datagram_socket.h>
 
 #include <array>
-#include <span>
 
 #include <iostream>
+#include <memory>
 
 auto main()->int {
-    rsabocanec::udp_socket client{};
+    std::unique_ptr<rsabocanec::datagram_socket> client =
+        std::make_unique<rsabocanec::local_datagram_socket>{};
 
-    if (auto const result = client.open(); result != 0) {
+    if (auto const result = client->open(); result != 0) {
         std::cerr   << "Failed to open UDP socket: " << result
                     << rsabocanec::descriptor::error_description(result)
                     << std::endl;
         return result;
     }
 
-    constexpr std::string_view address = "127.0.0.1";
-    constexpr uint16_t port = 9999;
+    constexpr std::string_view address = "/tmp/local-datagram-client";
 
     std::array<uint8_t, 4096> buffer{};
 
@@ -28,12 +28,11 @@ auto main()->int {
         std::cin >> request;
 
         {
-        auto [result, count] =
-            client.write_to(request.cbegin(), request.cend(), address, port);
+        auto [result, count] = client->write_to(request.cbegin(), request.cend(), address);
 
         if (result != 0) {
             std::cerr   << "Failed to write to "
-                        << address << ':' << port
+                        << address
                         << " with result " << result << ' '
                         << rsabocanec::descriptor::error_description(result)
                         << std::endl;
@@ -42,10 +41,9 @@ auto main()->int {
         }
         {
         std::string receive_address{};
-        uint16_t receive_port{};
 
         auto [result, count] =
-            client.read_from(buffer,receive_address,receive_port);
+            client->read_from(buffer, receive_address);
 
         if (result != 0) {
             std::cerr   << "Failed to read with result "

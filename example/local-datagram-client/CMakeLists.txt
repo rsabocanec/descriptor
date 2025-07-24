@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.28)
-project(udp-client)
+project(local-datagram-client)
 
 set(CMAKE_CXX_STANDARD 23)
 
-add_executable(udp-client main.cpp)
+add_executable(local-datagram-client main.cpp)
 
-add_dependencies(udp-client descriptor)
+add_dependencies(local-datagram-client descriptor)
 
-target_link_libraries(udp-client PRIVATE descriptor)
+target_link_libraries(local-datagram-client PRIVATE descriptor)
 
-target_include_directories(udp-client PRIVATE ${CMAKE_SOURCE_DIR})
+target_include_directories(local-datagram-client PRIVATE ${CMAKE_SOURCE_DIR})

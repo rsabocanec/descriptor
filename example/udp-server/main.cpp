@@ -35,10 +35,8 @@ auto main()->int {
         uint16_t receive_port{};
 
         {
-        auto [result, count] = server.read_from(
-            std::as_writable_bytes(std::span<uint8_t>(buffer)),
-            receive_address,
-            receive_port);
+        auto [result, count] =
+            server.read_from(buffer, receive_address, receive_port);
 
         if (result != 0) {
             std::cerr   << "Failed to read with result "
@@ -53,10 +51,8 @@ auto main()->int {
         }
         }
         {
-        auto [result, count] = server.write_to(
-            std::as_bytes(std::span<const char>(request.cbegin(), request.cend())),
-            receive_address,
-            receive_port);
+        auto [result, count] =
+            server.write_to(request.cbegin(), request.cend(),receive_address, receive_port);
 
         if (result != 0) {
             std::cerr   << "Failed to write to "

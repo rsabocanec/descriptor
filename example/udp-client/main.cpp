@@ -28,10 +28,8 @@ auto main()->int {
         std::cin >> request;
 
         {
-        auto [result, count] = client.write_to(
-            std::as_bytes(std::span<const char>(request.cbegin(), request.cend())),
-            address,
-            port);
+        auto [result, count] =
+            client.write_to(request.cbegin(), request.cend(), address, port);
 
         if (result != 0) {
             std::cerr   << "Failed to write to "
@@ -46,10 +44,8 @@ auto main()->int {
         std::string receive_address{};
         uint16_t receive_port{};
 
-        auto [result, count] = client.read_from(
-            std::as_writable_bytes(std::span<uint8_t>(buffer)),
-            receive_address,
-            receive_port);
+        auto [result, count] =
+            client.read_from(buffer,receive_address,receive_port);
 
         if (result != 0) {
             std::cerr   << "Failed to read with result "

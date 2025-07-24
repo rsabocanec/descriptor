@@ -30,7 +30,7 @@ void signal_handler(int signal) {
 auto main()->int {
     std::signal(SIGTERM, signal_handler);
 
-    constexpr std::string_view server_path{"/tmp/local"};
+    constexpr std::string_view server_path{"/tmp/local-stream-server"};
 
     rsabocanec::local_stream_socket server{};
     g_server = &server;
@@ -51,8 +51,7 @@ auto main()->int {
                     std::cout << "New connection accepted\n";
 
                     std::array<char, 24> request{};
-                    auto const [read_result, bytes_read] =
-                        acceptor.read(std::as_writable_bytes(std::span<char>(request)));
+                    auto const [read_result, bytes_read] = acceptor.read(request);
 
                     if (read_result != 0) {
                         std::cerr << "read failed; " << rsabocanec::descriptor::error_description(read_result) << '\n';
@@ -62,7 +61,7 @@ auto main()->int {
                         std::cout << "Received '" << response << "'\n";
 
                         auto const [write_result, bytes_written] =
-                            acceptor.write(std::as_bytes(std::span<const char>(response.cbegin(), response.cend())));
+                            acceptor.write(response.cbegin(), response.cend());
 
                         if (write_result != 0) {
                             std::cerr << "write failed; " << rsabocanec::descriptor::error_description(write_result) << '\n';
