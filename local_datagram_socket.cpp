@@ -50,7 +50,7 @@ std::tuple<int32_t, int32_t>
             .sun_family = AF_UNIX
         };
 
-        socklen_t local_address_length{};
+        socklen_t local_address_length{sizeof(local_address)};
 
         std::get<1>(result) =
             ::recvfrom(descriptor_,
@@ -71,8 +71,10 @@ std::tuple<int32_t, int32_t>
     std::tuple<int32_t, std::size_t> result {EINVAL, -1};
 
     if (descriptor_ != -1) {
-        struct sockaddr_un local_address{};
-        local_address.sun_family = AF_UNIX;
+        struct sockaddr_un local_address{
+            .sun_family = AF_UNIX
+        };
+
         ::strncpy(local_address.sun_path, address.data(), address.length());
 
         std::get<1>(result) =

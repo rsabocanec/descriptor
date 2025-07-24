@@ -25,8 +25,6 @@ auto main()->int {
         return result;
     }
 
-    constexpr std::string_view client_address = "/tmp/local-datagram-client";
-
     std::array<uint8_t, 4096> buffer{};
 
     std::string request{};
@@ -48,12 +46,12 @@ auto main()->int {
         }
         else {
             request = std::string(static_cast<const char*>(static_cast<const void*>(buffer.data())), count);
-            std::cout << "Received " << request << '\n';
+            std::cout << "Received " << request << " from " << receive_address << '\n';
         }
         }
         {
         auto [result, count] =
-            server->write_to(request.cbegin(), request.cend(), client_address);
+            server->write_to(request.cbegin(), request.cend(), receive_address);
 
         if (result != 0) {
             std::cerr   << "Failed to write to "

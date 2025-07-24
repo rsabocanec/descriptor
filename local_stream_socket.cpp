@@ -49,7 +49,10 @@ std::expected<acceptor, int32_t> local_stream_socket::accept() const noexcept {
         return std::unexpected(-1);
     }
 
-    struct sockaddr_un client_address{};
+    struct sockaddr_un client_address{
+            .sun_family = AF_UNIX
+    };
+
     socklen_t client_address_length{sizeof(client_address)};
 
     auto const result =
