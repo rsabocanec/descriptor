@@ -11,5 +11,5 @@ add_subdirectory(local-stream-server)
 add_subdirectory(udp-client)
 add_subdirectory(udp-server)
 
-#add_subdirectory(local-datagram-client)
-#add_subdirectory(local-datagram-server)
+add_subdirectory(local-datagram-client)
+add_subdirectory(local-datagram-server)
