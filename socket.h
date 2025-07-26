@@ -24,7 +24,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 namespace rsabocanec {
 
-[[nodiscard]] inline std::tuple<int32_t, std::string_view, uint16_t> parse_address(std::string_view address) noexcept {
+[[nodiscard]] inline std::tuple<int32_t, std::string_view, uint16_t> parse_ip_address(std::string_view address) noexcept {
     std::tuple<int32_t, std::string_view, uint16_t> result{EINVAL, {}, 0};
 
     auto pos = std::ranges::find(address, ':');

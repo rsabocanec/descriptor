@@ -13,7 +13,7 @@ add_library(descriptor SHARED descriptor.cpp
         udp_socket.cpp
         local_datagram_socket.cpp
         local_datagram_socket.h
-)
+        can_socket.cpp)
 
 add_library(descriptor-static STATIC descriptor.cpp
         socket.cpp
@@ -25,7 +25,7 @@ add_library(descriptor-static STATIC descriptor.cpp
         udp_socket.cpp
         local_datagram_socket.cpp
         local_datagram_socket.h
-)
+        can_socket.cpp)
 
 set_target_properties(descriptor-static PROPERTIES OUTPUT_NAME descriptor)
 

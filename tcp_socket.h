@@ -28,7 +28,7 @@ public:
     [[nodiscard]] int32_t open() noexcept final;
 
     [[nodiscard]] int32_t bind(std::string_view address) noexcept final {
-        auto const [result, pure_address, port] = parse_address(address);
+        auto const [result, pure_address, port] = parse_ip_address(address);
 
         if (result != 0) {
             return result;
@@ -42,7 +42,7 @@ public:
     [[nodiscard]] std::expected<acceptor, int32_t> accept() const noexcept final;
 
     [[nodiscard]] int32_t connect(std::string_view address) noexcept final {
-        auto const [result, pure_address, port] = parse_address(address);
+        auto const [result, pure_address, port] = parse_ip_address(address);
 
         if (result != 0) {
             return result;
