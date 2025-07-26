@@ -10,6 +10,8 @@ namespace {
     volatile std::sig_atomic_t signal_status;
 
     rsabocanec::local_stream_socket *g_server{nullptr};
+
+    constexpr std::string_view server_path{"/tmp/local-stream-server"};
 }
 
 void signal_handler(int signal) {
@@ -17,10 +19,12 @@ void signal_handler(int signal) {
 
     switch (signal) {
         case SIGTERM:
+	case SIGINT:
             if (g_server != nullptr) {
                 [[maybe_unused]] auto const result = g_server->shutdown();
                 g_server = nullptr;
             }
+	    ::unlink(server_path.data());
             break;
         default:
             break;
@@ -29,8 +33,6 @@ void signal_handler(int signal) {
 
 auto main()->int {
     std::signal(SIGTERM, signal_handler);
-
-    constexpr std::string_view server_path{"/tmp/local-stream-server"};
 
     rsabocanec::local_stream_socket server{};
     g_server = &server;

@@ -8,7 +8,7 @@
 auto main()->int {
     rsabocanec::local_stream_socket client{};
 
-    auto result = client.connect("/tmp/local-stream-client");
+    auto result = client.connect("/tmp/local-stream-server");
     if (result != 0) {
         std::cerr << "connect failed; " << rsabocanec::descriptor::error_description(result) << '\n';
     }
