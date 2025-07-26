@@ -16,6 +16,16 @@ auto main()->int {
         return result;
     }
 
+    constexpr std::string_view address = "/tmp/local-datagram-client";
+
+    if (auto const result = client->bind(address); result != 0) {
+        std::cerr   << "Failed to bind to " << address
+                    << " with result " << result
+                    << rsabocanec::descriptor::error_description(result)
+                    << std::endl;
+        return result;
+    }
+
     constexpr std::string_view server_address = "/tmp/local-datagram-server";
 
     std::array<uint8_t, 4096> buffer{};
@@ -59,6 +69,8 @@ auto main()->int {
         }
         }
     }
+
+    ::unlink(address.data());
 
     return EXIT_SUCCESS;
 }

@@ -60,7 +60,14 @@ std::tuple<int32_t, int32_t>
                     static_cast<struct sockaddr *>(static_cast<void *>(&local_address)),
                     &local_address_length);
 
-        std::get<0>(result) = std::get<1>(result) == -1 ? errno : 0;
+        if (std::get<1>(result) == -1) {
+            std::get<0>(result) = errno;
+        }
+        else {
+            std::get<0>(result) = 0;
+            address = std::string(&local_address.sun_path[0],
+                                local_address_length - sizeof(local_address.sun_family));
+        }
     }
 
     return result;
