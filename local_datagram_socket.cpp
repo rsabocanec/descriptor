@@ -34,7 +34,7 @@ namespace rsabocanec {
 
         if (::bind(descriptor_,
                         static_cast<const struct sockaddr *>(static_cast<const void*>(&local_address)),
-                        sizeof(local_address)) == -1) {
+                        sizeof(local_address.sun_family) + address.length()) == -1) {
             return errno;
                         }
 
@@ -83,7 +83,7 @@ std::tuple<int32_t, int32_t>
                     static_cast<std::size_t>(buffer.size()),
                     0,
                     static_cast<const struct sockaddr *>(static_cast<const void *>(&local_address)),
-                    sizeof(local_address));
+                    sizeof(local_address.sun_family) + address.length());
 
         std::get<0>(result) = std::get<1>(result) == -1 ? errno : 0;
     }
