@@ -29,6 +29,7 @@ void signal_handler(int signal) {
 
 auto main()->int {
     std::signal(SIGTERM, signal_handler);
+    std::signal(SIGINT, signal_handler);
 
     rsabocanec::tcp_socket server{};
     g_server = &server;

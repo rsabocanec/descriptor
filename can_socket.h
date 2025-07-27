@@ -75,6 +75,13 @@ public:
     : header_(header), frame_type_(frame_type), payload_length_(payload_length), payload_(payload) {
     }
 
+    template<class U, std::size_t N>
+    explicit can_frame(const std::array<U, N>& arr) noexcept
+    : can_frame(std::as_bytes(std::span(arr))) {
+    }
+
+    explicit can_frame(std::span<const std::byte> buffer) noexcept;
+
     can_frame(const can_frame&) = default;
     can_frame(can_frame&&) = default;
     can_frame& operator=(const can_frame&) = default;

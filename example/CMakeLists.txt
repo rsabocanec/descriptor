@@ -15,4 +15,4 @@ add_subdirectory(local-datagram-client)
 add_subdirectory(local-datagram-server)
 
 add_subdirectory(can-publisher)
-#add_subdirectory(can_subscriber)
+add_subdirectory(can_subscriber)

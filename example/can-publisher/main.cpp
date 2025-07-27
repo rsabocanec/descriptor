@@ -5,8 +5,31 @@
 #include <chrono>
 #include <iostream>
 
+#include <csignal>
+
+namespace {
+    volatile std::sig_atomic_t signal_status;
+    std::atomic_bool stop_flag{false};
+}
+
+void signal_handler(int signal) {
+    signal_status = signal;
+
+    switch (signal) {
+        case SIGTERM:
+        case SIGINT:
+            stop_flag = true;
+            break;
+        default:
+            break;
+    }
+}
+
 auto main()->int {
     using namespace std::chrono_literals;
+
+    std::signal(SIGTERM, signal_handler);
+    std::signal(SIGINT, signal_handler);
 
     rsabocanec::can_socket publisher{};
 
@@ -38,7 +61,7 @@ auto main()->int {
 
     rsabocanec::can_frame frame{};
 
-    for (;;) {
+    while (!stop_flag.load()) {
         frame.header(can_id_distrib(gen));
 
         auto const pl = can_payload_distrib(gen);
@@ -74,6 +97,8 @@ auto main()->int {
 
         std::this_thread::sleep_for(100ms);
     }
+
+    std::cout << "EXIT!\n";
 
     return EXIT_SUCCESS;
 }

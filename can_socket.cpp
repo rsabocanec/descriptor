@@ -7,11 +7,29 @@
 #include <sys/ioctl.h>
 
 #include <linux/can.h>
-#include <linux/can/raw.h>
 
 #include <unistd.h>
+#include <netinet/in.h>
 
 namespace rsabocanec {
+can_frame::can_frame(std::span<const std::byte> buffer) noexcept
+: can_frame() {
+    if (buffer.size() >= can_frame_buffer_size) {
+        uint32_t id_value{};
+        std::copy_n(buffer.cbegin(), sizeof(uint32_t),
+                    static_cast<std::byte*>(static_cast<void*>(&id_value)));
+
+        header(::ntohl(id_value));
+
+        frame_type_ = static_cast<can_type>(static_cast<uint8_t>(buffer[sizeof(uint32_t)]));
+        payload_length_ = static_cast<uint8_t>(buffer[sizeof(uint32_t) + 1]);
+
+        std::copy_n(buffer.cbegin() + sizeof(uint32_t) + 2,
+                    payload_length_,
+                    std::as_writable_bytes(std::span(payload_)).begin());
+    }
+}
+
 std::tuple<int32_t, int32_t> can_frame::as_bytes(std::span<std::byte> buffer) const noexcept {
     std::tuple<int32_t, int32_t> result{EINVAL, -1};
 
@@ -20,7 +38,8 @@ std::tuple<int32_t, int32_t> can_frame::as_bytes(std::span<std::byte> buffer) co
 
         count = 0;
 
-        const auto *ptr = static_cast<const std::byte*>(static_cast<const void*>(&header_.uint32_id_));
+        auto const id_value = ::htonl(header_.uint32_id_);
+        const auto *ptr = static_cast<const std::byte*>(static_cast<const void*>(&id_value));
         std::copy_n(ptr, sizeof(can_header), std::begin(buffer));
         count += sizeof(can_header);
 
