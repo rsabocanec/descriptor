@@ -48,7 +48,7 @@ struct can_header {
 };
 
 enum class can_type : uint8_t {
-    classical_frame = 0x00,
+    standard_frame = 0x00,
     remote_frame = 0x01,
     extended_frame = 0x02,
     //fd_frame = 0x04,
@@ -60,35 +60,45 @@ enum class can_type : uint8_t {
 
 using can_payload = std::array<uint8_t, sizeof(uint64_t)>;
 
-class can_frame {
+class can_socket_frame {
     can_header header_{};
     can_type frame_type_{can_type::extended_frame};
     can_payload payload_{};
     uint8_t payload_length_{0};
 
 public:
-    constexpr static std::size_t can_frame_buffer_size = sizeof(can_header) + sizeof(uint64_t);
+    static std::size_t can_frame_buffer_size;
 
-    can_frame() = default;
+    can_socket_frame() = default;
 
-    explicit can_frame(uint32_t header, can_type frame_type, can_payload payload, uint8_t payload_length) noexcept
+    explicit can_socket_frame(uint32_t header, can_type frame_type, can_payload payload, uint8_t payload_length) noexcept
     : header_(header), frame_type_(frame_type), payload_length_(payload_length), payload_(payload) {
     }
 
-    template<class U, std::size_t N>
-    explicit can_frame(const std::array<U, N>& arr) noexcept
-    : can_frame(std::as_bytes(std::span(arr))) {
+    template<std::random_access_iterator It>
+    explicit can_socket_frame(It first, std::size_t count) noexcept
+    : can_socket_frame(std::as_bytes(std::span(first, count))) {
     }
 
-    explicit can_frame(std::span<const std::byte> buffer) noexcept;
+    template<std::random_access_iterator It, class End>
+    explicit can_socket_frame(It first, End last) noexcept
+    : can_socket_frame(std::as_bytes(std::span(first, last))) {
+    }
 
-    can_frame(const can_frame&) = default;
-    can_frame(can_frame&&) = default;
-    can_frame& operator=(const can_frame&) = default;
-    can_frame& operator=(can_frame&&) = default;
-    ~can_frame() = default;
+    template<class U, std::size_t N>
+    explicit can_socket_frame(const std::array<U, N>& arr) noexcept
+    : can_socket_frame(std::as_bytes(std::span(arr))) {
+    }
 
-    auto operator<=>(const can_frame&) const = default;
+    explicit can_socket_frame(std::span<const std::byte> buffer) noexcept;
+
+    can_socket_frame(const can_socket_frame&) = default;
+    can_socket_frame(can_socket_frame&&) = default;
+    can_socket_frame& operator=(const can_socket_frame&) = default;
+    can_socket_frame& operator=(can_socket_frame&&) = default;
+    ~can_socket_frame() = default;
+
+    auto operator<=>(const can_socket_frame&) const = default;
 
     [[nodiscard]] auto header() const noexcept { return header_; }
     void header(uint32_t uint32_id) noexcept { header_.uint32_id_ = uint32_id; }
@@ -120,6 +130,16 @@ public:
     [[nodiscard]] auto src() const noexcept { return header_.bitfield_id_.src_; }
     [[nodiscard]] auto msg_type() const noexcept { return header_.bitfield_id_.msg_type_; }
 
+
+    template<std::random_access_iterator It>
+    [[nodiscard]] std::tuple<int32_t, int32_t> as_bytes(It first, std::size_t count) const noexcept {
+        return as_bytes(std::as_writable_bytes(std::span(first, count)));
+    }
+
+    template<std::random_access_iterator It, class End>
+    [[nodiscard]] std::tuple<int32_t, int32_t> as_bytes(It first, End last) const noexcept {
+        return as_bytes(std::as_writable_bytes(std::span(first, last)));
+    }
 
     template<class U, std::size_t N>
     [[nodiscard]] std::tuple<int32_t, int32_t> as_bytes(std::array<U, N>& arr) const noexcept {

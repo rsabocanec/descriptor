@@ -12,46 +12,62 @@
 #include <netinet/in.h>
 
 namespace rsabocanec {
-can_frame::can_frame(std::span<const std::byte> buffer) noexcept
-: can_frame() {
+std::size_t can_socket_frame::can_frame_buffer_size = sizeof(struct can_frame);
+
+can_socket_frame::can_socket_frame(std::span<const std::byte> buffer) noexcept
+: can_socket_frame() {
     if (buffer.size() >= can_frame_buffer_size) {
-        uint32_t id_value{};
-        std::copy_n(buffer.cbegin(), sizeof(uint32_t),
-                    static_cast<std::byte*>(static_cast<void*>(&id_value)));
+        const auto *ptr_frame = static_cast<const struct can_frame *>(static_cast<const void*>(buffer.data()));
 
-        header(::ntohl(id_value));
+        header(::ntohl(ptr_frame->can_id));
 
-        frame_type_ = static_cast<can_type>(static_cast<uint8_t>(buffer[sizeof(uint32_t)]));
-        payload_length_ = static_cast<uint8_t>(buffer[sizeof(uint32_t) + 1]);
+        if (ptr_frame->can_id & CAN_EFF_FLAG) frame_type_ = can_type::extended_frame;
+        else if (ptr_frame->can_id & CAN_RTR_FLAG) frame_type_ = can_type::remote_frame;
+        else if (ptr_frame->can_id & CAN_ERR_FLAG) frame_type_ = can_type::error_frame;
+        else frame_type_ = can_type::standard_frame;
 
-        std::copy_n(buffer.cbegin() + sizeof(uint32_t) + 2,
+        payload_length_ = ptr_frame->len;
+
+        std::copy_n(ptr_frame->data,
                     payload_length_,
-                    std::as_writable_bytes(std::span(payload_)).begin());
+                    payload_.begin());
     }
 }
 
-std::tuple<int32_t, int32_t> can_frame::as_bytes(std::span<std::byte> buffer) const noexcept {
+std::tuple<int32_t, int32_t> can_socket_frame::as_bytes(std::span<std::byte> buffer) const noexcept {
     std::tuple<int32_t, int32_t> result{EINVAL, -1};
 
-    if (buffer.size() >= can_frame_buffer_size) {
-        auto& count = std::get<1>(result);
+    struct can_frame frame{
+        .can_id = header_.uint32_id_ & 0x0FFFFFFFU,
+        .len = payload_length_
+    };
 
-        count = 0;
+    switch (frame_type_) {
+      case can_type::standard_frame:
+        frame.can_id &= CAN_SFF_MASK;
+        break;
+      case can_type::extended_frame:
+        frame.can_id &= CAN_EFF_MASK;
+        frame.can_id |= CAN_EFF_FLAG;
+        break;
+      case can_type::remote_frame:
+        frame.can_id |= CAN_RTR_FLAG;
+        break;
+      case can_type::error_frame:
+        frame.can_id |= CAN_ERR_FLAG;
+        break;
+      default:
+        break;
+    }
 
-        auto const id_value = ::htonl(header_.uint32_id_);
-        const auto *ptr = static_cast<const std::byte*>(static_cast<const void*>(&id_value));
-        std::copy_n(ptr, sizeof(can_header), std::begin(buffer));
-        count += sizeof(can_header);
+    ::memccpy(frame.data, payload_.data(), sizeof(frame.data), payload_length_);
 
-        count += sizeof(frame_type_);
-        buffer[count] = static_cast<std::byte>(static_cast<uint8_t>(frame_type_));
-
-        count += sizeof(payload_length_);
-        buffer[count] = static_cast<std::byte>(payload_length_);
-
-        auto const payload_as_bytes = std::as_bytes(std::span(payload_));
-        std::copy_n(  payload_as_bytes.cbegin(), payload_length_,
-                    buffer.begin() + count);
+    if (buffer.size() >= sizeof(frame)) {
+        std::copy_n(static_cast<const uint8_t*>(static_cast<const void*>(&frame)),
+                    sizeof(frame),
+                    static_cast<uint8_t*>(static_cast<void*>(buffer.data())));
+        std::get<0>(result) = 0;
+        std::get<1>(result) = sizeof(frame);
     }
 
     return result;

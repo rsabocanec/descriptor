@@ -60,10 +60,10 @@ auto main()->int {
         return result;
     }
 
-    std::array<uint8_t, rsabocanec::can_frame::can_frame_buffer_size> buffer{};
+    std::vector<uint8_t> buffer(rsabocanec::can_socket_frame::can_frame_buffer_size);
 
     for (;;) {
-        auto const [result, count] = subscriber.read(buffer);
+        auto const [result, count] = subscriber.read(buffer.begin(), buffer.end());
 
         if (result != 0) {
             std::cerr   << "Failed to read CAN payload: (" << result << ") "
@@ -72,7 +72,7 @@ auto main()->int {
             return result;
         }
 
-        rsabocanec::can_frame frame(buffer);
+        rsabocanec::can_socket_frame frame(buffer.cbegin(), buffer.cend());
 
         std::cout   << "CAN frame: 0x"
                     << std::hex << std::setfill('0') << std::setw(8)

@@ -50,7 +50,7 @@ auto main()->int {
         return result;
     }
 
-    std::array<uint8_t, rsabocanec::can_frame::can_frame_buffer_size> buffer{};
+    std::vector<uint8_t> buffer(rsabocanec::can_socket_frame::can_frame_buffer_size);
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -59,7 +59,7 @@ auto main()->int {
     std::uniform_int_distribution<uint64_t> can_payload_distrib{};
     std::uniform_int_distribution<uint8_t> can_payload_length_distrib(1, 8);
 
-    rsabocanec::can_frame frame{};
+    rsabocanec::can_socket_frame frame{};
 
     while (!stop_flag.load()) {
         frame.header(can_id_distrib(gen));
@@ -68,31 +68,30 @@ auto main()->int {
         frame.payload(std::bit_cast<rsabocanec::can_payload>(pl));
 
         frame.payload_length(can_payload_length_distrib(gen));
-        {
-        auto const [result, count] = frame.as_bytes(buffer);
 
-        if (result != 0) {
+        auto const [ser_result, ser_count] = frame.as_bytes(buffer.begin(), buffer.end());
+
+        if (ser_result != 0) {
             std::cerr   << "Failed to serialize CAN frame: "
-                        << result << '\n';
-            return result;
+                        << ser_result << ", count: " << ser_count << '\n';
+            return ser_result;
         }
-        }
-        {
-        auto const [result, count] = publisher.write(buffer);
+
+        auto const [result, count] =
+            publisher.write(buffer.cbegin(), buffer.cbegin() + ser_count);
 
         if (result != 0) {
             std::cerr   << "Failed to send CAN payload: (" << result << ") "
                         << rsabocanec::descriptor::error_description(result)
-                        << '\n';
+                        << ". Sent " << count << " bytes\n";
             return result;
         }
 
-        if (count != sizeof(rsabocanec::can_header) + frame.payload_length()) {
+        if (count != ser_count) {
             std::cout   << "Failed to send CAN payload length ("
-                        << frame.payload_length() << "), "
-                        << "sent " << count - sizeof(rsabocanec::can_header)
+                        << static_cast<uint16_t>(frame.payload_length())
+                        << "), sent " << count - 8
                         << " instead\n";
-        }
         }
 
         std::this_thread::sleep_for(100ms);
