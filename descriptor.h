@@ -89,8 +89,8 @@ public:
     }
 
     template<class U, std::size_t N>
-    [[nodiscard]] std::tuple<int32_t, int32_t> read(const std::array<U, N>& arr) const noexcept {
-        return read(std::as_bytes(std::span(arr)));
+    [[nodiscard]] std::tuple<int32_t, int32_t> write(const std::array<U, N>& arr) const noexcept {
+        return write(std::as_bytes(std::span(arr)));
     }
 
     [[nodiscard]] std::tuple<int32_t, int32_t> write(std::span<const std::byte> buffer) const noexcept;

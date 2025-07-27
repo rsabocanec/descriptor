@@ -51,25 +51,13 @@ enum class can_type : uint8_t {
     classical_frame = 0x00,
     remote_frame = 0x01,
     extended_frame = 0x02,
-    fd_frame = 0x04,
-    fd_bit_rate_switch = 0x08,
-    fd_error_state = 0x10,
+    //fd_frame = 0x04,
+    //fd_bit_rate_switch = 0x08,
+    //fd_error_state = 0x10,
     error_frame = 0x40,
     status_frame = 0x80
 };
 
-    /*
-    - 0x00U The PCAN message is a CAN Standard Frame (11-bit identifier)
-    - 0x01U  The PCAN message is a CAN Remote-Transfer-Request Frame
-    - 0x02U  The PCAN message is a CAN Extended Frame (29-bit identifier)
-    - 0x04U  The PCAN message represents a FD frame in terms of CiA Specs
-    - 0x08U  The PCAN message represents a FD bit rate switch (CAN data at a
-    higher bit rate)
-        - 0x10U  The PCAN message represents a FD error state indicator(CAN FD
-        transmitter was error active)
-        - 0x40U  The PCAN message represents an error frame
-        - 0x80U  The PCAN message represents a PCAN status message
-    */
 using can_payload = std::array<uint8_t, sizeof(uint64_t)>;
 
 class can_frame {
@@ -79,6 +67,8 @@ class can_frame {
     uint8_t payload_length_{0};
 
 public:
+    constexpr static std::size_t can_frame_buffer_size = sizeof(can_header) + sizeof(uint64_t);
+
     can_frame() = default;
 
     explicit can_frame(uint32_t header, can_type frame_type, can_payload payload, uint8_t payload_length) noexcept
@@ -108,7 +98,7 @@ public:
         header_.uint32_id_ = header.uint32_id_;
     }
 
-    [[nodiscard]] auto fraame_type() const noexcept { return frame_type_; }
+    [[nodiscard]] auto frame_type() const noexcept { return frame_type_; }
     void frame_type(can_type frame_type) noexcept { frame_type_ = frame_type; }
 
     [[nodiscard]] auto payload() const noexcept { return payload_; }
@@ -122,6 +112,14 @@ public:
     [[nodiscard]] auto dest() const noexcept { return header_.bitfield_id_.dest_; }
     [[nodiscard]] auto src() const noexcept { return header_.bitfield_id_.src_; }
     [[nodiscard]] auto msg_type() const noexcept { return header_.bitfield_id_.msg_type_; }
+
+
+    template<class U, std::size_t N>
+    [[nodiscard]] std::tuple<int32_t, int32_t> as_bytes(std::array<U, N>& arr) const noexcept {
+        return as_bytes(std::as_writable_bytes(std::span(arr)));
+    }
+
+    [[nodiscard]] std::tuple<int32_t, int32_t> as_bytes(std::span<std::byte> buffer) const noexcept;
 };
 
 class can_socket : public bound_socket {
