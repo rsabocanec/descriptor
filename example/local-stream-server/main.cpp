@@ -42,7 +42,7 @@ auto main()->int {
         std::cerr << "bind failed; " << rsabocanec::descriptor::error_description(result) << '\n';
     }
     else {
-        result = server.listen(1);
+        result = server.listen();
         if (result != 0) {
             std::cerr << "listen faeled: " << rsabocanec::descriptor::error_description(result) << '\n';
         }
@@ -53,25 +53,39 @@ auto main()->int {
                     std::cout << "New connection accepted\n";
 
                     std::array<char, 24> request{};
-                    auto const [read_result, bytes_read] = acceptor.read(request);
 
-                    if (read_result != 0) {
-                        std::cerr << "read failed; " << rsabocanec::descriptor::error_description(read_result) << '\n';
-                    }
-                    else {
-                        const std::string_view response(request.cbegin(), bytes_read);
-                        std::cout << "Received '" << response << "'\n";
+                    int32_t read_error{};
+                    int32_t bytes_read{};
 
-                        auto const [write_result, bytes_written] =
-                            acceptor.write(response.cbegin(), response.cend());
+                    do {
+                        auto const read_result = acceptor.read(request);
 
-                        if (write_result != 0) {
-                            std::cerr << "write failed; " << rsabocanec::descriptor::error_description(write_result) << '\n';
+                        read_error = std::get<0>(read_result);
+                        bytes_read = std::get<1>(read_result);
+
+                        if (read_error != 0) {
+                            std::cerr << "read failed; " << rsabocanec::descriptor::error_description(read_error) << '\n';
+                        }
+                        else if (bytes_read == 0) {
+                            std::cout << "Connection from " << acceptor.peer() << " has been closed!\n";
                         }
                         else {
-                            std::cout << "Sent '" << response << "'\n";
+                            const std::string_view response(request.cbegin(), bytes_read);
+                            std::cout << "Received '" << response << "'\n";
+
+                            auto const [write_result, bytes_written] =
+                                acceptor.write(response.cbegin(), response.cend());
+
+                            if (write_result != 0) {
+                                std::cerr << "write failed; " << rsabocanec::descriptor::error_description(write_result) << '\n';
+                            }
+                            else {
+                                std::cout << "Sent '" << response << "'\n";
+                            }
                         }
-                    }
+                    } while (read_error == 0 && bytes_read > 0);
+
+                    [[maybe_unused]] auto shutdown_result = acceptor.shutdown();
                 }, std::move(accept_result.value())).detach();
 
                 accept_result = server.accept();

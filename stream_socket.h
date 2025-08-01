@@ -74,9 +74,7 @@ public:
 
     [[nodiscard]] virtual int32_t connect(std::string_view address) noexcept = 0;
 
-    [[nodiscard]] int32_t disconnect() noexcept {
-        return close();
-    }
+    [[nodiscard]] int32_t disconnect() noexcept;
 };
 
 } // rsabocanec

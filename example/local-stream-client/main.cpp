@@ -10,29 +10,40 @@ auto main()->int {
 
     auto result = client.connect("/tmp/local-stream-server");
     if (result != 0) {
-        std::cerr << "connect failed; " << rsabocanec::descriptor::error_description(result) << '\n';
+        std::cerr << "Connect failed; " << rsabocanec::descriptor::error_description(result) << '\n';
     }
     else {
-        const std::string_view request{"Hello world!"};
-        auto [write_result, bytes_written]  =
-            client.write(request.cbegin(), request.cend());
+        std::string request{};
 
-        if (write_result != 0) {
-            std::cerr << "write failed; " << rsabocanec::descriptor::error_description(write_result) << '\n';
-        }
-        else {
-            std::cout << "Sent '" << request << "'\n";
+        do {
+            std::cout << "\nREQUEST: ";
+            std::cin >> request;
 
-            std::array<char, 24> response{};
-            auto const [read_result, bytes_read] =
-                client.read(response);
+            auto [write_result, bytes_written]  =
+                client.write(request.cbegin(), request.cend());
 
-            if (read_result != 0) {
-                std::cerr << "read failed; " << rsabocanec::descriptor::error_description(read_result) << '\n';
+            if (write_result != 0) {
+                std::cerr << "Write failed; " << rsabocanec::descriptor::error_description(write_result) << '\n';
             }
             else {
-                std::cout << "Received '" << std::string_view(response.cbegin(), bytes_read) << "'\n";
+                std::cout << "Sent '" << request << "'\n";
+
+                std::array<char, 24> response{};
+                auto const [read_result, bytes_read] =
+                    client.read(response);
+
+                if (read_result != 0) {
+                    std::cerr << "Read failed; " << rsabocanec::descriptor::error_description(read_result) << '\n';
+                }
+                else {
+                    std::cout << "Received '" << std::string_view(response.cbegin(), bytes_read) << "'\n";
+                }
             }
+        } while (request != "bye");
+
+        result = client.disconnect();
+        if (result != 0) {
+            std::cerr << "Disconnect failed; " << rsabocanec::descriptor::error_description(result) << '\n';
         }
     }
 

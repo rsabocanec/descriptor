@@ -25,4 +25,26 @@ int32_t stream_socket::listen(int32_t max_connections) const noexcept {
 
     return 0;
 }
+
+int32_t stream_socket::disconnect() noexcept {
+    if (descriptor_ == -1) {
+        return -1;
+    }
+
+    if (::shutdown(descriptor_, SHUT_RD) == -1) {
+        return errno;
+    }
+
+    if (::shutdown(descriptor_, SHUT_WR) == -1) {
+        return errno;
+    }
+    else {
+        char c{};
+        if (auto const result = ::recv(descriptor_, &c, 1, 0); result == -1) {
+            return errno;
+        }
+    }
+
+    return close();
+}
 } // rsabocanec
