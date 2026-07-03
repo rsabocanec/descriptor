@@ -9,7 +9,7 @@ namespace rsabocanec {
         auto result = close();
         if (result == 0) {
             descriptor_ = ::socket(AF_UNIX, SOCK_DGRAM, 0);
-            if (descriptor_ == -1) {
+            if (descriptor_.load() == -1) {
                 result = errno;
             }
         }
@@ -22,7 +22,7 @@ namespace rsabocanec {
             return EINVAL;
         }
 
-        if (descriptor_ == -1) {
+        if (descriptor_.load() == -1) {
             if (auto const result = open(); result != 0) {
                 return result;
             }
@@ -32,7 +32,7 @@ namespace rsabocanec {
         local_address.sun_family = AF_UNIX;
         ::strncpy(local_address.sun_path, address.data(), address.length());
 
-        if (::bind(descriptor_,
+        if (::bind(descriptor_.load(),
                         static_cast<const struct sockaddr *>(static_cast<const void*>(&local_address)),
                         sizeof(local_address.sun_family) + address.length()) == -1) {
             return errno;
@@ -45,7 +45,7 @@ std::tuple<int32_t, int32_t>
     local_datagram_socket::read_from(std::span<std::byte> buffer, std::string &address) const noexcept {
     std::tuple<int32_t, std::size_t> result {EINVAL, -1};
 
-    if (descriptor_ != -1) {
+    if (descriptor_.load() != -1) {
         struct sockaddr_un local_address{
             .sun_family = AF_UNIX
         };
@@ -53,7 +53,7 @@ std::tuple<int32_t, int32_t>
         socklen_t local_address_length{sizeof(local_address)};
 
         std::get<1>(result) =
-            ::recvfrom(descriptor_,
+            ::recvfrom(descriptor_.load(),
                     static_cast<void*>(buffer.data()),
                     static_cast<std::size_t>(buffer.size()),
                     0,
@@ -77,7 +77,7 @@ std::tuple<int32_t, int32_t>
     local_datagram_socket::write_to(std::span<const std::byte> buffer, std::string_view address) const noexcept {
     std::tuple<int32_t, std::size_t> result {EINVAL, -1};
 
-    if (descriptor_ != -1) {
+    if (descriptor_.load() != -1) {
         struct sockaddr_un local_address{
             .sun_family = AF_UNIX
         };
@@ -85,7 +85,7 @@ std::tuple<int32_t, int32_t>
         ::strncpy(local_address.sun_path, address.data(), address.length());
 
         std::get<1>(result) =
-            ::sendto(descriptor_,
+            ::sendto(descriptor_.load(),
                     static_cast<const void*>(buffer.data()),
                     static_cast<std::size_t>(buffer.size()),
                     0,

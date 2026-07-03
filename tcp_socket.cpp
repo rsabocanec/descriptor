@@ -12,7 +12,7 @@ int32_t tcp_socket::open() noexcept {
     auto result = close();
     if (result == 0) {
         descriptor_ = ::socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-        if (descriptor_ == -1) {
+        if (descriptor_.load() == -1) {
             result = errno;
         }
     }
@@ -21,7 +21,7 @@ int32_t tcp_socket::open() noexcept {
 }
 
 int32_t tcp_socket::bind(std::string_view address, uint16_t port) noexcept {
-    if (descriptor_ == -1) {
+    if (descriptor_.load() == -1) {
         if (auto const result = open(); result != 0) {
             return result;
         }
@@ -42,7 +42,7 @@ int32_t tcp_socket::bind(std::string_view address, uint16_t port) noexcept {
         }
     }
 
-    if (::bind(descriptor_,
+    if (::bind(descriptor_.load(),
                     static_cast<const struct sockaddr *>(static_cast<const void*>(&server_address)),
                     sizeof(server_address)) == -1) {
         return errno;
@@ -52,7 +52,7 @@ int32_t tcp_socket::bind(std::string_view address, uint16_t port) noexcept {
 }
 
 std::expected<acceptor, int32_t> tcp_socket::accept() const noexcept {
-    if (descriptor_ == -1) {
+    if (descriptor_.load() == -1) {
         return std::unexpected(-1);
     }
 
@@ -60,7 +60,7 @@ std::expected<acceptor, int32_t> tcp_socket::accept() const noexcept {
     socklen_t client_address_length{sizeof(client_address)};
 
     auto const result =
-        ::accept(descriptor_,
+        ::accept(descriptor_.load(),
             static_cast<sockaddr *>(static_cast<void *>(&client_address)), &client_address_length);
 
     if (result == -1) {
@@ -77,7 +77,7 @@ std::expected<acceptor, int32_t> tcp_socket::accept() const noexcept {
 }
 
 int32_t tcp_socket::connect(std::string_view address, uint16_t port) noexcept {
-    if (descriptor_ == -1) {
+    if (descriptor_.load() == -1) {
         if (auto const result = open(); result != 0) {
             return result;
         }
@@ -97,7 +97,7 @@ int32_t tcp_socket::connect(std::string_view address, uint16_t port) noexcept {
         return errno;
     }
 
-    if (::connect(descriptor_,
+    if (::connect(descriptor_.load(),
                     static_cast<const struct sockaddr *>(static_cast<const void*>(&server_address)),
                     sizeof(server_address)) == -1) {
         return errno;

@@ -77,7 +77,7 @@ int32_t can_socket::open() noexcept {
     auto result = close();
     if (result == 0) {
         descriptor_ = ::socket(PF_CAN, SOCK_RAW, CAN_RAW);
-        if (descriptor_ == -1) {
+        if (descriptor_.load() == -1) {
             result = errno;
         }
     }
@@ -86,7 +86,7 @@ int32_t can_socket::open() noexcept {
 }
 
 int32_t can_socket::bind(std::string_view address) noexcept {
-    if (descriptor_ == -1) {
+    if (descriptor_.load() == -1) {
         if (auto const result = open(); result != 0) {
             return result;
         }
@@ -99,7 +99,7 @@ int32_t can_socket::bind(std::string_view address) noexcept {
     struct ifreq ifr{};
     ::strcpy(ifr.ifr_name, address.data());
 
-    if (::ioctl(descriptor_, SIOCGIFINDEX, &ifr) == -1) {
+    if (::ioctl(descriptor_.load(), SIOCGIFINDEX, &ifr) == -1) {
         return errno;
     }
 
@@ -108,7 +108,7 @@ int32_t can_socket::bind(std::string_view address) noexcept {
         .can_ifindex = ifr.ifr_ifindex,
     };
 
-    if (::bind(descriptor_,
+    if (::bind(descriptor_.load(),
         static_cast<const struct sockaddr *>(static_cast<const void*>(&can_address)),
         sizeof(can_address)) == -1) {
         return errno;

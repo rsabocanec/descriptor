@@ -11,7 +11,7 @@
 
 namespace rsabocanec {
 int32_t stream_socket::listen(int32_t max_connections) const noexcept {
-    if (descriptor_ == -1) {
+    if (descriptor_.load() == -1) {
         return -1;
     }
 
@@ -19,7 +19,7 @@ int32_t stream_socket::listen(int32_t max_connections) const noexcept {
         max_connections = SOMAXCONN;
     }
 
-    if (::listen(descriptor_, max_connections) == -1) {
+    if (::listen(descriptor_.load(), max_connections) == -1) {
         return errno;
     }
 
@@ -27,20 +27,20 @@ int32_t stream_socket::listen(int32_t max_connections) const noexcept {
 }
 
 int32_t stream_socket::disconnect() noexcept {
-    if (descriptor_ == -1) {
+    if (descriptor_.load() == -1) {
         return -1;
     }
 
-    if (::shutdown(descriptor_, SHUT_RD) == -1) {
+    if (::shutdown(descriptor_.load(), SHUT_RD) == -1) {
         return errno;
     }
 
-    if (::shutdown(descriptor_, SHUT_WR) == -1) {
+    if (::shutdown(descriptor_.load(), SHUT_WR) == -1) {
         return errno;
     }
     else {
         char c{};
-        if (auto const result = ::recv(descriptor_, &c, 1, 0); result == -1) {
+        if (auto const result = ::recv(descriptor_.load(), &c, 1, 0); result == -1) {
             return errno;
         }
     }
