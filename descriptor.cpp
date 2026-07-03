@@ -20,7 +20,7 @@ int32_t descriptor::close() noexcept {
 }
 
 std::tuple<int32_t, int32_t> descriptor::read(std::span<std::byte> buffer) const noexcept {
-    std::tuple<int32_t, std::size_t> result {EINVAL, -1};
+    std::tuple<int32_t, int32_t> result {EINVAL, -1};
 
     if (descriptor_ != -1) {
         std::get<1>(result) =
@@ -35,7 +35,7 @@ std::tuple<int32_t, int32_t> descriptor::read(std::span<std::byte> buffer) const
 }
 
 std::tuple<int32_t, int32_t> descriptor::write(std::span<const std::byte> buffer) const noexcept {
-    std::tuple<int32_t, std::size_t> result {EINVAL, -1};
+    std::tuple<int32_t, int32_t> result {EINVAL, -1};
 
     if (descriptor_ != -1) {
         std::get<1>(result) =
@@ -45,6 +45,12 @@ std::tuple<int32_t, int32_t> descriptor::write(std::span<const std::byte> buffer
 
         std::get<0>(result) = std::get<1>(result) == -1 ? errno : 0;
     }
+
+    return result;
+}
+
+std::tuple<int32_t, int32_t> descriptor::splice(std::span<const std::byte> buffer) const noexcept {
+    std::tuple<int32_t, int32_t> result {EINVAL, -1};
 
     return result;
 }

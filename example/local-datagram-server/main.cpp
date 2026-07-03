@@ -4,6 +4,9 @@
 #include <memory>
 #include <iostream>
 
+#include <fcntl.h>
+#include <unistd.h>
+
 auto main()->int {
     std::unique_ptr<rsabocanec::datagram_socket> server =
         std::make_unique<rsabocanec::local_datagram_socket>();
