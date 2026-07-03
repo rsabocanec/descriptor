@@ -110,7 +110,7 @@ public:
         return splice(std::as_bytes(std::span(arr)));
     }
 
-    [[nodiscard]] std::tuple<int32_t, int32_t> splice(std::span<const std::byte> buffer) const noexcept;
+    [[nodiscard]] virtual std::tuple<int32_t, int32_t> splice(std::span<const std::byte> buffer) const noexcept;
 
     [[nodiscard]] int32_t select(int32_t timeout) const noexcept;
     [[nodiscard]] int32_t poll(int32_t timeout) const noexcept;

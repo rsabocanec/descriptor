@@ -48,6 +48,8 @@ public:
     socket() = default;
     explicit socket(int socket) : descriptor(socket) {}
 
+    [[nodiscard]] std::tuple<int32_t, int32_t> splice(std::span<const std::byte> buffer) const noexcept final override;
+
     [[nodiscard]] virtual int32_t shutdown() const noexcept;
 };
 
