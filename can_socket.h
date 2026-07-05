@@ -153,8 +153,10 @@ class can_socket : public bound_socket {
 public:
     can_socket() = default;
 
-    [[nodiscard]] int32_t open() noexcept final;
     [[nodiscard]] int32_t bind(std::string_view address) noexcept final;
+    
+protected:
+    [[nodiscard]] int32_t create() noexcept final;
 };
 
 } // rsabocanec

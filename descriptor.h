@@ -63,7 +63,10 @@ public:
         return descriptor_.load();
     }
 
-    [[nodiscard]] virtual int32_t open() noexcept = 0;
+protected:    
+    [[nodiscard]] virtual int32_t create() noexcept = 0;
+
+public:    
     [[nodiscard]] int32_t close() noexcept;
 
     template<std::random_access_iterator It>

@@ -33,13 +33,6 @@ auto main()->int {
 
     rsabocanec::can_socket publisher{};
 
-    if (auto const result = publisher.open(); result != 0) {
-        std::cerr   << "Failed to open CAN socket: " << result
-                    << rsabocanec::descriptor::error_description(result)
-                    << std::endl;
-        return result;
-    }
-
     constexpr std::string_view address = "vcan0";
 
     if (auto const result = publisher.bind(address); result != 0) {

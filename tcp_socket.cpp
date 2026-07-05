@@ -8,7 +8,7 @@
 
 namespace rsabocanec {
 
-int32_t tcp_socket::open() noexcept {
+int32_t tcp_socket::create() noexcept {
     auto result = close();
     if (result == 0) {
         descriptor_ = ::socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -22,7 +22,7 @@ int32_t tcp_socket::open() noexcept {
 
 int32_t tcp_socket::bind(std::string_view address, uint16_t port) noexcept {
     if (descriptor_.load() == -1) {
-        if (auto const result = open(); result != 0) {
+        if (auto const result = create(); result != 0) {
             return result;
         }
     }
@@ -78,7 +78,7 @@ std::expected<acceptor, int32_t> tcp_socket::accept() const noexcept {
 
 int32_t tcp_socket::connect(std::string_view address, uint16_t port) noexcept {
     if (descriptor_.load() == -1) {
-        if (auto const result = open(); result != 0) {
+        if (auto const result = create(); result != 0) {
             return result;
         }
     }

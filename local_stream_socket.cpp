@@ -8,7 +8,7 @@
 #include <unistd.h>
 
 namespace rsabocanec {
-int32_t local_stream_socket::open() noexcept {
+int32_t local_stream_socket::create() noexcept {
     auto result = close();
     if (result == 0) {
         descriptor_ = ::socket(AF_UNIX, SOCK_STREAM, 0);
@@ -26,7 +26,7 @@ int32_t local_stream_socket::bind(std::string_view address) noexcept {
     }
 
     if (descriptor_.load() == -1) {
-        if (auto const result = open(); result != 0) {
+        if (auto const result = create(); result != 0) {
             return result;
         }
     }
@@ -72,7 +72,7 @@ int32_t local_stream_socket::connect(std::string_view address) noexcept {
     }
 
     if (descriptor_.load() == -1) {
-        if (auto const result = open(); result != 0) {
+        if (auto const result = create(); result != 0) {
             return result;
         }
     }

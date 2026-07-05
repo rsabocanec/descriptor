@@ -25,7 +25,6 @@ class local_datagram_socket : public datagram_socket {
 public:
     local_datagram_socket() = default;
 
-    [[nodiscard]] int32_t open() noexcept final;
     [[nodiscard]] int32_t bind(std::string_view address) noexcept final;
 
     [[nodiscard]] std::tuple<int32_t, int32_t>
@@ -33,6 +32,9 @@ public:
 
     [[nodiscard]] std::tuple<int32_t, int32_t>
         write_to(std::span<const std::byte> buffer, std::string_view address) const noexcept final;
+
+protected:
+    [[nodiscard]] int32_t create() noexcept final;
 };
 
 } // rsabocanec

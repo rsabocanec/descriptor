@@ -51,16 +51,17 @@ public:
         [[maybe_unused]] auto const result = socket::shutdown();
     }
 
-    [[nodiscard]] int32_t open() noexcept final {
-        return 0;
-    }
-
     [[nodiscard]] std::string_view peer() const noexcept {
         return peer_address_;
     }
 
     [[nodiscard]] uint16_t peer_port() const noexcept {
         return peer_port_;
+    }
+
+protected:    
+    [[nodiscard]] int32_t create() noexcept final {
+        return 0;
     }
 };
 

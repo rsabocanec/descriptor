@@ -73,7 +73,7 @@ std::tuple<int32_t, int32_t> can_socket_frame::as_bytes(std::span<std::byte> buf
     return result;
 }
 
-int32_t can_socket::open() noexcept {
+int32_t can_socket::create() noexcept {
     auto result = close();
     if (result == 0) {
         descriptor_ = ::socket(PF_CAN, SOCK_RAW, CAN_RAW);
@@ -87,7 +87,7 @@ int32_t can_socket::open() noexcept {
 
 int32_t can_socket::bind(std::string_view address) noexcept {
     if (descriptor_.load() == -1) {
-        if (auto const result = open(); result != 0) {
+        if (auto const result = create(); result != 0) {
             return result;
         }
     }

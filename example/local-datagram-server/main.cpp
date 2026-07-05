@@ -11,13 +11,6 @@ auto main()->int {
     std::unique_ptr<rsabocanec::datagram_socket> server =
         std::make_unique<rsabocanec::local_datagram_socket>();
 
-    if (auto const result = server->open(); result != 0) {
-        std::cerr   << "Failed to open UNIX socket: " << result
-                    << rsabocanec::descriptor::error_description(result)
-                    << std::endl;
-        return result;
-    }
-
     constexpr std::string_view address = "/tmp/local-datagram-server";
 
     if (auto const result = server->bind(address); result != 0) {

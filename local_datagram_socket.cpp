@@ -5,7 +5,7 @@
 
 namespace rsabocanec {
 
-    int32_t local_datagram_socket::open() noexcept {
+    int32_t local_datagram_socket::create() noexcept {
         auto result = close();
         if (result == 0) {
             descriptor_ = ::socket(AF_UNIX, SOCK_DGRAM, 0);
@@ -23,7 +23,7 @@ namespace rsabocanec {
         }
 
         if (descriptor_.load() == -1) {
-            if (auto const result = open(); result != 0) {
+            if (auto const result = create(); result != 0) {
                 return result;
             }
         }
@@ -43,7 +43,7 @@ namespace rsabocanec {
 
 std::tuple<int32_t, int32_t>
     local_datagram_socket::read_from(std::span<std::byte> buffer, std::string &address) const noexcept {
-    std::tuple<int32_t, std::size_t> result {EINVAL, -1};
+    std::tuple<int32_t, int32_t> result {EINVAL, -1};
 
     if (descriptor_.load() != -1) {
         struct sockaddr_un local_address{
@@ -75,7 +75,7 @@ std::tuple<int32_t, int32_t>
 
 std::tuple<int32_t, int32_t>
     local_datagram_socket::write_to(std::span<const std::byte> buffer, std::string_view address) const noexcept {
-    std::tuple<int32_t, std::size_t> result {EINVAL, -1};
+    std::tuple<int32_t, int32_t> result {EINVAL, -1};
 
     if (descriptor_.load() != -1) {
         struct sockaddr_un local_address{

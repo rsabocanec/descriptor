@@ -18,8 +18,8 @@ std::tuple<int32_t, int32_t> socket::splice_impl(const descriptor& source, std::
 
     if (descriptor_.load() != -1) {
         std::get<1>(result) =
-            ::sendfile(source.get(), 
-                       descriptor_.load(), 
+            ::sendfile(descriptor_.load(),
+                       source.get(),  
                        offset ? &offset_value : nullptr, 
                        count);
 

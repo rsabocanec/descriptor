@@ -8,13 +8,6 @@
 auto main()->int {
     rsabocanec::udp_socket server{};
 
-    if (auto const result = server.open(); result != 0) {
-        std::cerr   << "Failed to open UDP socket: " << result
-                    << rsabocanec::descriptor::error_description(result)
-                    << std::endl;
-        return result;
-    }
-
     constexpr std::string_view address = "127.0.0.1";
     constexpr uint16_t port = 9999;
 
