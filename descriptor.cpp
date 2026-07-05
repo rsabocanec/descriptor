@@ -75,11 +75,11 @@ std::tuple<int32_t, int32_t> descriptor::splice(const descriptor& source, std::s
     return result;
 }
 
-int32_t descriptor::select(int32_t timeout) const noexcept {
+int32_t descriptor::select(int32_t/* timeout*/) const noexcept {
     return -1;
 }
 
-int32_t descriptor::poll(int32_t timeout) const noexcept {
+int32_t descriptor::poll(int32_t/* timeout*/) const noexcept {
     return -1;
 }
 
