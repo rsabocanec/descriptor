@@ -2,6 +2,7 @@
 
 #include <array>
 #include <thread>
+#include <fstream>
 #include <iostream>
 
 #include <csignal>
@@ -54,6 +55,8 @@ auto main()->int {
                     int32_t read_error{};
                     int32_t bytes_read{};
 
+                    std::ofstream ofs{"/tmp/received.txt"};
+
                     do {
                         auto const read_result = acceptor.read(request);
                         read_error = std::get<0>(read_result);
@@ -68,8 +71,10 @@ auto main()->int {
                         }
                         else {
                             const std::string_view response(request.cbegin(), bytes_read);
+                            ofs << response;
+                            
                             std::cout << "Received '" << response << "'\n";
-
+#if 0
                             auto const [write_result, bytes_written] =
                                 acceptor.write(response.cbegin(), response.cend());
 
@@ -79,6 +84,7 @@ auto main()->int {
                             else {
                                 std::cout << "Sent '" << response << "'\n";
                             }
+#endif                            
                         }
                     } while (read_error == 0 && bytes_read > 0);
 

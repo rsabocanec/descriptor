@@ -25,10 +25,12 @@ class local_stream_socket : public stream_socket {
 public:
     local_stream_socket() = default;
 
-    [[nodiscard]] int32_t open() noexcept final;
     [[nodiscard]] int32_t bind(std::string_view address) noexcept final;
     [[nodiscard]] std::expected<acceptor, int32_t> accept() const noexcept final;
     [[nodiscard]] int32_t connect(std::string_view address) noexcept final;
+
+protected:
+    [[nodiscard]] int32_t create() noexcept final;
 };
 
 } // rsabocanec

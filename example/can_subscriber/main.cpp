@@ -3,6 +3,7 @@
 #include <random>
 #include <thread>
 #include <chrono>
+#include <iomanip>
 #include <iostream>
 
 #include <csignal>
@@ -42,13 +43,6 @@ auto main()->int {
 
     rsabocanec::can_socket subscriber{};
     g_subscriber = &subscriber;
-
-    if (auto const result = subscriber.open(); result != 0) {
-        std::cerr   << "Failed to open CAN socket: " << result
-                    << rsabocanec::descriptor::error_description(result)
-                    << std::endl;
-        return result;
-    }
 
     constexpr std::string_view address = "vcan0";
 

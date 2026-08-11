@@ -25,8 +25,6 @@ class tcp_socket : public stream_socket {
 public:
     tcp_socket() = default;
 
-    [[nodiscard]] int32_t open() noexcept final;
-
     [[nodiscard]] int32_t bind(std::string_view address) noexcept final {
         auto const [result, pure_address, port] = parse_ip_address(address);
 
@@ -52,6 +50,9 @@ public:
     }
 
     [[nodiscard]] int32_t connect(std::string_view address, uint16_t port) noexcept;
+
+protected:
+    [[nodiscard]] int32_t create() noexcept final;
 };
 
 } // rsabocanec

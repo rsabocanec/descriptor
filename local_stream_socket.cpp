@@ -8,11 +8,11 @@
 #include <unistd.h>
 
 namespace rsabocanec {
-int32_t local_stream_socket::open() noexcept {
+int32_t local_stream_socket::create() noexcept {
     auto result = close();
     if (result == 0) {
         descriptor_ = ::socket(AF_UNIX, SOCK_STREAM, 0);
-        if (descriptor_ == -1) {
+        if (descriptor_.load() == -1) {
             result = errno;
         }
     }
@@ -25,8 +25,8 @@ int32_t local_stream_socket::bind(std::string_view address) noexcept {
         return EINVAL;
     }
 
-    if (descriptor_ == -1) {
-        if (auto const result = open(); result != 0) {
+    if (descriptor_.load() == -1) {
+        if (auto const result = create(); result != 0) {
             return result;
         }
     }
@@ -35,7 +35,7 @@ int32_t local_stream_socket::bind(std::string_view address) noexcept {
     local_address.sun_family = AF_UNIX;
     ::strncpy(local_address.sun_path, address.data(), address.length());
 
-    if (::bind(descriptor_,
+    if (::bind(descriptor_.load(),
                     static_cast<const struct sockaddr *>(static_cast<const void*>(&local_address)),
                     sizeof(local_address)) == -1) {
         return errno;
@@ -45,7 +45,7 @@ int32_t local_stream_socket::bind(std::string_view address) noexcept {
 }
 
 std::expected<acceptor, int32_t> local_stream_socket::accept() const noexcept {
-    if (descriptor_ == -1) {
+    if (descriptor_.load() == -1) {
         return std::unexpected(-1);
     }
 
@@ -56,7 +56,7 @@ std::expected<acceptor, int32_t> local_stream_socket::accept() const noexcept {
     socklen_t client_address_length{sizeof(client_address)};
 
     auto const result =
-        ::accept(descriptor_,
+        ::accept(descriptor_.load(),
             static_cast<sockaddr *>(static_cast<void *>(&client_address)), &client_address_length);
 
     if (result == -1) {
@@ -71,8 +71,8 @@ int32_t local_stream_socket::connect(std::string_view address) noexcept {
         return EINVAL;
     }
 
-    if (descriptor_ == -1) {
-        if (auto const result = open(); result != 0) {
+    if (descriptor_.load() == -1) {
+        if (auto const result = create(); result != 0) {
             return result;
         }
     }
@@ -85,7 +85,7 @@ int32_t local_stream_socket::connect(std::string_view address) noexcept {
     local_address.sun_family = AF_UNIX;
     ::strncpy(local_address.sun_path, address.data(), address.length());
 
-    if (::connect(descriptor_,
+    if (::connect(descriptor_.load(),
                     static_cast<const struct sockaddr *>(static_cast<const void*>(&local_address)),
                     sizeof(local_address)) == -1) {
         return errno;

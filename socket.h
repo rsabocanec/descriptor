@@ -48,7 +48,18 @@ public:
     socket() = default;
     explicit socket(int socket) : descriptor(socket) {}
 
+    [[nodiscard]] std::tuple<int32_t, int32_t> splice(const descriptor& source, std::size_t count, 
+                                                      std::optional<int32_t> offset_in = std::nullopt,
+                                                      [[maybe_unused]] std::optional<int32_t> offset_out = std::nullopt,
+                                                      [[maybe_unused]] uint32_t flags = 0ul) const noexcept final override {
+        return splice_impl(source, count, offset_in);
+    }
+
     [[nodiscard]] virtual int32_t shutdown() const noexcept;
+
+protected:
+    [[nodiscard]] std::tuple<int32_t, int32_t> splice_impl(const descriptor& source, std::size_t count, 
+                                                           std::optional<int32_t> offset = std::nullopt) const noexcept;
 };
 
 } // rsabocanec

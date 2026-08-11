@@ -9,15 +9,15 @@
 
 namespace rsabocanec {
 
-int32_t udp_socket::open() noexcept {
-    if (descriptor_ == -1) {
+int32_t udp_socket::create() noexcept {
+    if (descriptor_.load() == -1) {
         if (auto const result = close(); result != 0) {
             return result;
         }
     }
 
     descriptor_ = ::socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (descriptor_ == -1) {
+    if (descriptor_.load() == -1) {
         return errno;
     }
 
@@ -25,8 +25,8 @@ int32_t udp_socket::open() noexcept {
 }
 
 int32_t udp_socket::bind(std::string_view address, uint16_t port) noexcept {
-    if (descriptor_ == -1) {
-        if (auto const result = open(); result != 0) {
+    if (descriptor_.load() == -1) {
+        if (auto const result = create(); result != 0) {
             return result;
         }
     }
@@ -47,7 +47,7 @@ int32_t udp_socket::bind(std::string_view address, uint16_t port) noexcept {
         }
     }
 
-    if (::bind( descriptor_,
+    if (::bind( descriptor_.load(),
                 static_cast<const struct sockaddr *>(static_cast<const void*>(&server_address)),
                 sizeof(server_address)) == -1) {
         return errno;
@@ -58,9 +58,9 @@ int32_t udp_socket::bind(std::string_view address, uint16_t port) noexcept {
 
 std::tuple<int32_t, int32_t> udp_socket::read_from(
         std::span<std::byte> buffer, std::string &address, uint16_t &port) const noexcept {
-    std::tuple<int32_t, std::size_t> result {0, -1};
+    std::tuple<int32_t, int32_t> result {0, -1};
 
-    if (descriptor_ != -1) {
+    if (descriptor_.load() != -1) {
         struct sockaddr_in peer_address{
             .sin_family = AF_INET,
             .sin_port = ::htons(port),
@@ -70,7 +70,7 @@ std::tuple<int32_t, int32_t> udp_socket::read_from(
         socklen_t peer_address_length = sizeof(peer_address);
 
         std::get<1>(result) =
-            ::recvfrom( descriptor_,
+            ::recvfrom( descriptor_.load(),
                         static_cast<void*>(buffer.data()),
                         static_cast<std::size_t>(buffer.size()),
                         0,
@@ -95,25 +95,29 @@ std::tuple<int32_t, int32_t> udp_socket::read_from(
 
 std::tuple<int32_t, int32_t> udp_socket::write_to(
         std::span<const std::byte> buffer, std::string_view address, uint16_t port) const noexcept {
-    std::tuple<int32_t, std::size_t> result {EINVAL, -1};
-
-    if (descriptor_ != -1) {
-        const struct sockaddr_in peer_address{
-            .sin_family = AF_INET,
-            .sin_port = ::htons(port),
-            .sin_addr = {.s_addr = ::inet_addr(address.data())}
-        };
-
-        std::get<1>(result) =
-            ::sendto(descriptor_,
-                    static_cast<const void*>(buffer.data()),
-                    static_cast<std::size_t>(buffer.size()),
-                    0,
-                    static_cast<const struct sockaddr *>(static_cast<const void *>(&peer_address)),
-                    sizeof(peer_address));
-
-        std::get<0>(result) = std::get<1>(result) == -1 ? errno : 0;
+    std::tuple<int32_t, int32_t> result {EINVAL, -1};
+    
+    auto const descriptor = ::socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (descriptor == -1) {
+        std::get<0>(result) = errno;
+        return result;   
     }
+
+    const struct sockaddr_in peer_address{
+        .sin_family = AF_INET,
+        .sin_port = ::htons(port),
+        .sin_addr = {.s_addr = ::inet_addr(address.data())}
+    };
+
+    std::get<1>(result) =
+        ::sendto(descriptor,
+                static_cast<const void*>(buffer.data()),
+                static_cast<std::size_t>(buffer.size()),
+                0,
+                static_cast<const struct sockaddr *>(static_cast<const void *>(&peer_address)),
+                sizeof(peer_address));
+
+    std::get<0>(result) = std::get<1>(result) == -1 ? errno : 0;
 
     return result;
 }

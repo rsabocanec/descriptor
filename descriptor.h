@@ -20,6 +20,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <atomic>
 #include <span>
 #include <tuple>
+#include <optional>
 #include <string_view>
 #include <iterator>
 
@@ -58,7 +59,14 @@ public:
         [[maybe_unused]] auto const result = close();
     }
 
-    [[nodiscard]] virtual int32_t open() noexcept = 0;
+    [[nodiscard]] int32_t get() const noexcept {
+        return descriptor_.load();
+    }
+
+protected:    
+    [[nodiscard]] virtual int32_t create() noexcept = 0;
+
+public:    
     [[nodiscard]] int32_t close() noexcept;
 
     template<std::random_access_iterator It>
@@ -94,6 +102,11 @@ public:
     }
 
     [[nodiscard]] std::tuple<int32_t, int32_t> write(std::span<const std::byte> buffer) const noexcept;
+
+    [[nodiscard]] virtual std::tuple<int32_t, int32_t> splice(const descriptor& source, std::size_t count, 
+                                                              std::optional<int32_t> offset_in = std::nullopt,
+                                                              std::optional<int32_t> offset_out = std::nullopt,
+                                                              uint32_t flags = 0ul) const noexcept;
 
     [[nodiscard]] int32_t select(int32_t timeout) const noexcept;
     [[nodiscard]] int32_t poll(int32_t timeout) const noexcept;

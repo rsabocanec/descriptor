@@ -27,8 +27,6 @@ class udp_socket : public datagram_socket {
 public:
     udp_socket() = default;
 
-    [[nodiscard]] int32_t open() noexcept final;
-
     [[nodiscard]] int32_t bind(std::string_view address) noexcept final {
         auto const [result, pure_address, port] = parse_ip_address(address);
 
@@ -106,6 +104,9 @@ public:
 
     [[nodiscard]] std::tuple<int32_t, int32_t>
         write_to(std::span<const std::byte> buffer, std::string_view address, uint16_t port) const noexcept;
+
+protected:
+    [[nodiscard]] int32_t create() noexcept final;
 };
 
 } // rsabocanec
