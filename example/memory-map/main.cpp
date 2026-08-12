@@ -8,8 +8,6 @@
 
 #include <cstring>
 
-#include <fcntl.h>
-
 auto main(int argc, char** argv)->int {
 
     if (argc < 2) {
@@ -19,17 +17,18 @@ auto main(int argc, char** argv)->int {
 
     std::string_view filename{argv[1]};
 
+    constexpr std::size_t new_file_size = 1024;
+
     {
         rsabocanec::file file{};
 
-        auto result = file.open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRGRP | S_IROTH);
+        auto result = file.open(filename);
+        
         if (result != 0) {
             std::cerr << "Failed to open file " << filename << " with result " << result << ' '
                     << rsabocanec::descriptor::error_description(result) << '\n';
             return result;
         }
-
-        constexpr std::size_t new_file_size = 1024;
 
         result = file.memory_map(rsabocanec::memory_map_access::write, new_file_size);
         if (result != 0) {
@@ -45,16 +44,10 @@ auto main(int argc, char** argv)->int {
     
     // Print the content of the file to verify the write operation
     {
-        rsabocanec::file file{};
-        auto result = file.open(filename, O_RDONLY);
-        if (result != 0) {
-            std::cerr << "Failed to open file " << filename << " with result " << result << ' '
-                      << rsabocanec::descriptor::error_description(result) << '\n';
-            return result;
-        }
+        rsabocanec::reader reader(filename);
 
-        std::array<char, 1024> buffer{};
-        auto [read_result, bytes_read] = file.read(buffer);
+        std::array<char, new_file_size> buffer{};
+        auto [read_result, bytes_read] = reader.read(buffer);
         if (read_result != 0) {
             std::cerr << "Failed to read from file " << filename << " with result " << read_result << ' '
                       << rsabocanec::descriptor::error_description(read_result) << '\n';

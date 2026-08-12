@@ -9,7 +9,7 @@
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/build/example/memory-map/memory-map",
-      "args": ["${workspaceFolder}/test.txt"],
+      "args": ["/tmp/test.txt"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],

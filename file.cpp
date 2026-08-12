@@ -41,7 +41,7 @@ int32_t rsabocanec::file::truncate(std::size_t size) noexcept {
     return 0;
 }
 
-int32_t rsabocanec::file::memory_map(memory_map_access access, std::size_t size/* = 0*/) noexcept {
+int32_t rsabocanec::file::memory_map(memory_map_access access, std::size_t size/* = 0644*/) noexcept {
     if (descriptor_.load() == -1) {
         return -1;
     }
