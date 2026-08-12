@@ -27,11 +27,23 @@ class file : public descriptor {
 public:
     file() = default;
 
+    virtual ~file() {
+        [[maybe_unused]] auto result = memory_unlock();
+        result = memory_sync(memory_map_sync_flags::sync);
+        result = memory_unmap();
+        result = close();
+    }
+
+
     [[nodiscard]] int32_t open(std::string_view path, int32_t flags, int32_t mode = 0) noexcept;
 
     [[nodiscard]] int64_t size() const noexcept;
 
     [[nodiscard]] int32_t truncate(std::size_t size) noexcept;
+
+    [[nodiscard]] int32_t deallocate(std::size_t size) noexcept {
+        return truncate(size);
+    }
 
     [[nodiscard]] int32_t memory_map(memory_map_access access, std::size_t size = 0) noexcept;
     [[nodiscard]] int32_t memory_unmap() noexcept;

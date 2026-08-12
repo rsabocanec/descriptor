@@ -18,3 +18,5 @@ add_subdirectory(can-publisher)
 add_subdirectory(can_subscriber)
 
 add_subdirectory(tcp-splice)
+
+add_subdirectory(memory-map)

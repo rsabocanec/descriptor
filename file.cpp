@@ -62,6 +62,14 @@ int32_t rsabocanec::file::memory_map(memory_map_access access, std::size_t size/
     memory_map_addr_ = nullptr;
     memory_map_length_ = 0;
 
+    if (st.st_size >= 0 && size > static_cast<std::size_t>(st.st_size)) {
+        // If the requested size is greater than the current file size, truncate the file
+        auto const truncate_result = ::ftruncate(descriptor_.load(), static_cast<off_t>(size));
+        if (truncate_result == -1) {
+            return errno;
+        }
+    }
+
     const std::size_t length = size == 0 ? static_cast<std::size_t>(st.st_size) : size;
 
     auto const result = ::mmap( nullptr, length, 
