@@ -20,3 +20,5 @@ add_subdirectory(can_subscriber)
 add_subdirectory(tcp-splice)
 
 add_subdirectory(memory-map)
+
+add_subdirectory(timer)

@@ -1,13 +1,31 @@
 #include "descriptor.h"
 
+#include <ostream>
+
 #include <cstring>
 
 #include <sys/types.h>
+
+#include <err.h>
 
 #define _FILE_OFFSET_BITS 64
 #include <unistd.h>
 
 namespace rsabocanec {
+
+void report_error(
+    std::ostream& os,
+    int32_t error_num,
+    std::string_view prefix,
+    std::source_location location) noexcept {
+
+    os  << prefix << "Error " << error_num
+        << '[' << ::strerror(error_num) << "]\t"
+        << "in " << location.file_name()
+        << " (" << location.function_name() << "), line "
+        << location.line() << '\n';
+}
+
 
 int32_t descriptor::close() noexcept {
     if (descriptor_.load() != -1) {
