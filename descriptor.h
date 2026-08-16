@@ -23,10 +23,21 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <optional>
 #include <string_view>
 #include <iterator>
+#include <source_location>
 
 #include <cstdint>
 
+namespace std {
+class os;
+}
+
 namespace rsabocanec {
+
+void report_error(
+    std::ostream& os,
+    int32_t error_num,
+    std::string_view prefix = {},
+    std::source_location location = std::source_location::current()) noexcept;
 
 class descriptor {
 protected:
@@ -59,6 +70,10 @@ public:
         [[maybe_unused]] auto const result = close();
     }
 
+    [[nodiscard]] bool valid() const noexcept {
+        return descriptor_ >= 0;
+    }
+    
     [[nodiscard]] int32_t get() const noexcept {
         return descriptor_.load();
     }
