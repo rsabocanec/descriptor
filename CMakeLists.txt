@@ -15,6 +15,7 @@ add_library(descriptor SHARED descriptor.cpp
         local_datagram_socket.h
         can_socket.cpp
         file.cpp
+        shared_memory.cpp
         timer.cpp)
 
 add_library(descriptor-static STATIC descriptor.cpp
@@ -29,6 +30,7 @@ add_library(descriptor-static STATIC descriptor.cpp
         local_datagram_socket.h
         can_socket.cpp
         file.cpp
+        shared_memory.cpp
         timer.cpp)
 
 set_target_properties(descriptor-static PROPERTIES OUTPUT_NAME descriptor)
