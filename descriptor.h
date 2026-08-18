@@ -39,6 +39,7 @@ void report_error(
     std::string_view prefix = {},
     std::source_location location = std::source_location::current()) noexcept;
 
+
 class descriptor {
 protected:
     std::atomic<int32_t> descriptor_{-1};
