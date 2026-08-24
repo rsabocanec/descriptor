@@ -9,19 +9,46 @@
 #include <unistd.h>
 
 int32_t rsabocanec::semaphore::wait() noexcept {
+    if (sem_ == nullptr) {
+        return EINVAL;
+    }
+    else {
+        if (::sem_wait(static_cast<sem_t*>(static_cast<void*>(sem_))) == -1) {
+            return errno;
+        }
+    }
+
     return 0;
 }
 
 int32_t rsabocanec::semaphore::try_wait() noexcept {
+    if (sem_ == nullptr) {
+        return EINVAL;
+    }
+    else {
+        if (::sem_trywait(static_cast<sem_t*>(static_cast<void*>(sem_))) == -1) {
+            return errno;
+        }
+    }
+
     return 0;
 }
 
 int32_t rsabocanec::semaphore::post() noexcept {
+    if (sem_ == nullptr) {
+        return EINVAL;
+    }
+    else {
+        if (::sem_post(static_cast<sem_t*>(static_cast<void*>(sem_))) == -1) {
+            return errno;
+        }
+    }
+
     return 0;
 }
 
 int32_t rsabocanec::named_semaphore::open(std::string_view name, uint32_t initial_value/* = 0ul*/) noexcept {
-    if (sem_) {
+    if (sem_ != nullptr) {
         if (::sem_close(static_cast<sem_t*>(static_cast<void*>(sem_))) == -1) {
             return errno;
         }        
@@ -34,7 +61,7 @@ int32_t rsabocanec::named_semaphore::open(std::string_view name, uint32_t initia
         
     auto const result = sem_ == nullptr ? errno : 0;
 
-    if (sem_) {
+    if (sem_ != nullptr) {
         name_ = name;
     }
 
@@ -60,14 +87,8 @@ int32_t rsabocanec::named_semaphore::close() noexcept {
 }
 
 int32_t rsabocanec::unnamed_semaphore::init(std::string_view name, uint32_t initial_value) noexcept {
-    if (sem_) {
-        if (::sem_destroy(static_cast<sem_t*>(static_cast<void*>(sem_))) == -1) {
-            return errno;
-        }
-
-        if (::sem_close(static_cast<sem_t*>(static_cast<void*>(sem_))) == -1) {
-            return errno;
-        }        
+    if (auto const result = close(); result != 0) {
+        return result;
     }
 
     name_ = name;
@@ -80,7 +101,7 @@ int32_t rsabocanec::unnamed_semaphore::init(std::string_view name, uint32_t init
     else {
         // Create a semaphore in shared memory for process-shared semaphores
         shared_semaphore = 1;
-        auto const fd = ::shm_open(name_.c_str(), O_CREAT | O_RDWR, 0644);
+        auto const fd = ::memfd_create(name_.c_str(), MFD_ALLOW_SEALING);
         if (fd == -1) {
             auto const result = errno;
             name_.clear();
@@ -89,7 +110,7 @@ int32_t rsabocanec::unnamed_semaphore::init(std::string_view name, uint32_t init
 
         if (::ftruncate(fd, sizeof(sem_t)) == -1) {
             auto const result = errno;
-            ::shm_unlink(name_.c_str());
+            ::close(fd);
             name_.clear();
             return result;
         }
@@ -100,7 +121,7 @@ int32_t rsabocanec::unnamed_semaphore::init(std::string_view name, uint32_t init
 
         if (sem_ == MAP_FAILED) {
             auto const result = errno;
-            ::shm_unlink(name_.c_str());
+            ::close(fd);
             name_.clear();
             return result;
         }
@@ -122,23 +143,16 @@ int32_t rsabocanec::unnamed_semaphore::close() noexcept {
 
         if (::sem_close(static_cast<sem_t*>(static_cast<void*>(sem_))) == -1) {
             return errno;
-        }        
-    }
-
-    if (name_.empty()) {
-        delete static_cast<sem_t*>(static_cast<void*>(sem_));
-    }
-    else {
-        // Close the shared memory semaphore for process-shared semaphores
-        auto const result = ::shm_unlink(name_.c_str());
-        if (result == -1) {
-            return errno;
         }
- 
-        name_.clear();
+
+        if (name_.empty()) {
+            delete static_cast<sem_t*>(static_cast<void*>(sem_));
+        }
+
+        sem_ = nullptr;
     }
 
-    sem_ = nullptr;
+    name_.clear();
 
     return 0;
 }
