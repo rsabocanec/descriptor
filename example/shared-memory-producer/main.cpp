@@ -19,8 +19,6 @@ auto main(int argc, char** argv) ->int {
 
     std::string_view filename{argv[1]};
 
-    constexpr std::size_t shared_memory_size = 1024;
-
     rsabocanec::shared_memory shared_mem{};
 
     if (auto const open_result = shared_mem.open(filename, O_WRONLY | O_CREAT); open_result != 0) {
@@ -33,7 +31,7 @@ auto main(int argc, char** argv) ->int {
 
     rsabocanec::named_semaphore semaphore{};
 
-    std::string semaphore_name = std::string(filename) + "_semaphore";
+    std::string semaphore_name = "/" + std::string(filename) + "_semaphore";
 
     if (auto const open_result = semaphore.open(semaphore_name); open_result != 0) {
         std::cerr << "Failed to open semaphore " << semaphore_name << " with result " << open_result << ' '
@@ -52,16 +50,15 @@ auto main(int argc, char** argv) ->int {
 
     std::cout << "Consumer is ready! Starting to write messages to shared memory " << filename << '\n';
 
-    std::array<char, shared_memory_size> buffer{};
-
     for (auto i = 0; i < 10; ++i) {
         std::string message = "Message " + std::to_string(i) + " from producer";
 
         std::cout << "Writing message " << i << " to shared memory " << filename << '\n';
 
-        std::string hello_message = "Hello from shared memory producer! Iteration: " + std::to_string(i);
+        std::string hello_message = "Hello from shared memory producer! Iteration: " + std::to_string(i + 1);
 
         auto const [write_result, bytes_written] = shared_mem.write(hello_message.cbegin(), hello_message.cend());
+        
         if (write_result != 0) {
             std::cerr << "Failed to write to shared memory " << filename << " with result " << write_result << ' '
                     << rsabocanec::descriptor::error_description(write_result) << '\n';
@@ -76,7 +73,11 @@ auto main(int argc, char** argv) ->int {
             return post_result;
         }
 
+        std::cout << "Posted on semaphore " << semaphore_name << " to signal consumer\n";
+
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        std::cout << "Waiting on semaphore " << semaphore_name << " from consumer\n";
 
         if (auto const wait_result = semaphore.wait(); wait_result != 0) {
             std::cerr << "Failed to wait on semaphore " << semaphore_name << " with result " << wait_result << ' '
@@ -84,7 +85,7 @@ auto main(int argc, char** argv) ->int {
             return wait_result;
         }
 
-        std::cout << "Consumer has read message " << i
+        std::cout << "Consumer has read message " << i + 1
                   << " from shared memory " << filename
                   << " and truncated its content\n";
     }

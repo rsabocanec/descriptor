@@ -32,7 +32,7 @@ auto main(int argc, char** argv) ->int {
 
     rsabocanec::named_semaphore semaphore{};
 
-    std::string semaphore_name = std::string(filename) + "_semaphore";
+    std::string semaphore_name = "/" + std::string(filename) + "_semaphore";
 
     if (auto const open_result = semaphore.open(semaphore_name); open_result != 0) {
         std::cerr << "Failed to open semaphore " << semaphore_name << " with result " << open_result << ' '
@@ -48,10 +48,12 @@ auto main(int argc, char** argv) ->int {
         return post_result;
     }
 
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
     std::array<char, shared_memory_size> buffer{};
 
     for (auto i = 0; i < 10; ++i) {
-        std::cout << "Waiting for message " << i << " from shared memory " << filename << '\n';
+        std::cout << "Waiting on semaphore " << semaphore_name << " from producer\n";
 
         if (auto const wait_result = semaphore.wait(); wait_result != 0) {
             std::cerr << "Failed to wait on semaphore " << semaphore_name << " with result " << wait_result << ' '
@@ -67,24 +69,29 @@ auto main(int argc, char** argv) ->int {
                     << rsabocanec::descriptor::error_description(read_result) << '\n';
         }
         else {
-            std::cout.write(buffer.data(), bytes_read);
-            std::cout << '\n';
+            if (bytes_read == 0) {
+                std::cout << "No data read from shared memory " << filename << '\n';
+            }
+            else {
+                std::cout.write(buffer.data(), bytes_read);
+                std::cout << '\n';
+
+                if (auto const truncate_result = shared_mem.truncate(0); truncate_result != 0) {
+                    std::cerr << "Failed to truncate shared memory " << filename << " with result " << truncate_result << ' '
+                            << rsabocanec::descriptor::error_description(truncate_result) << '\n';
+                }
+            }
         }
-
-        if (auto const truncate_result = shared_mem.truncate(0); truncate_result != 0) {
-            std::cerr << "Failed to truncate shared memory " << filename << " with result " << truncate_result << ' '
-                    << rsabocanec::descriptor::error_description(truncate_result) << '\n';
-        }
-
-        std::cout << "Truncated shared memory " << filename << " to size 0\n";
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
         if (auto const post_result = semaphore.post(); post_result != 0) {
             std::cerr << "Failed to post on semaphore " << semaphore_name << " with result " << post_result << ' '
                     << rsabocanec::descriptor::error_description(post_result) << '\n';
             return post_result;
         }
+
+        std::cout << "Posted on semaphore " << semaphore_name << " to signal producer\n";
+        
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
     return EXIT_SUCCESS;

@@ -54,6 +54,10 @@ int32_t rsabocanec::named_semaphore::open(std::string_view name, uint32_t initia
         }        
     }
 
+    if (!name.starts_with('/')) {
+        return EINVAL;
+    }
+
     sem_ = static_cast<long int*>(static_cast<void*>(
                 ::sem_open(name.data(), O_CREAT, 
                            0644 /*S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH*/,
