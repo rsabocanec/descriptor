@@ -15,10 +15,13 @@ add_subdirectory(local-datagram-client)
 add_subdirectory(local-datagram-server)
 
 add_subdirectory(can-publisher)
-add_subdirectory(can_subscriber)
+add_subdirectory(can-subscriber)
 
 add_subdirectory(tcp-splice)
 
 add_subdirectory(memory-map)
+
+add_subdirectory(shared-memory-consumer)
+add_subdirectory(shared-memory-producer)
 
 add_subdirectory(timer)

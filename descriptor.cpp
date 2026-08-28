@@ -2,6 +2,10 @@
 
 #include <ostream>
 
+#ifdef _STACKTRACE_SUPPORTED
+# include <stacktrace>
+#endif
+
 #include <cstring>
 
 #include <sys/types.h>
@@ -13,18 +17,21 @@
 
 namespace rsabocanec {
 
-void report_error(
-    std::ostream& os,
-    int32_t error_num,
-    std::string_view prefix,
-    std::source_location location) noexcept {
-
+void report_error(std::ostream& os, int32_t error_num, std::string_view prefix,
+                                  std::source_location location) noexcept {
     os  << prefix << "Error " << error_num
         << '[' << ::strerror(error_num) << "]\t"
         << "in " << location.file_name()
         << " (" << location.function_name() << "), line "
-        << location.line() << '\n';
+        << location.line() << '\n'
+        << "\nStack trace:\n" 
+#ifdef _STACKTRACE_SUPPORTED        
+        << std::stacktrace::current() << '\n'
+#endif
+        ;
+
 }
+
 
 
 int32_t descriptor::close() noexcept {

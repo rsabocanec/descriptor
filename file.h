@@ -39,9 +39,9 @@ public:
         result = close();
     }
 
-    [[nodiscard]] int32_t open( std::string_view path, 
-                                int32_t flags = 0102 /* O_RDWR | O_CREAT*/, 
-                                int32_t mode = 0644 /*S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH*/) noexcept;
+    [[nodiscard]] virtual int32_t open( std::string_view path, 
+                                        int32_t flags = 0102 /* O_RDWR | O_CREAT*/, 
+                                        int32_t mode = 0644 /*S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH*/) noexcept;
 
     [[nodiscard]] int64_t size() const noexcept;
 

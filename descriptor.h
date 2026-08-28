@@ -39,6 +39,7 @@ void report_error(
     std::string_view prefix = {},
     std::source_location location = std::source_location::current()) noexcept;
 
+
 class descriptor {
 protected:
     std::atomic<int32_t> descriptor_{-1};
@@ -81,8 +82,8 @@ public:
 protected:    
     [[nodiscard]] virtual int32_t create() noexcept = 0;
 
-public:    
-    [[nodiscard]] int32_t close() noexcept;
+public:
+    [[nodiscard]] virtual int32_t close() noexcept;
 
     template<std::random_access_iterator It>
     [[nodiscard]] std::tuple<int32_t, int32_t> read(It first, std::size_t count) const noexcept {
