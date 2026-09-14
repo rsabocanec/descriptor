@@ -8,7 +8,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-int32_t rsabocanec::semaphore::wait() noexcept {
+int32_t descriptor::semaphore::wait() noexcept {
     if (sem_ == nullptr) {
         return EINVAL;
     }
@@ -21,7 +21,7 @@ int32_t rsabocanec::semaphore::wait() noexcept {
     return 0;
 }
 
-int32_t rsabocanec::semaphore::try_wait() noexcept {
+int32_t descriptor::semaphore::try_wait() noexcept {
     if (sem_ == nullptr) {
         return EINVAL;
     }
@@ -34,7 +34,7 @@ int32_t rsabocanec::semaphore::try_wait() noexcept {
     return 0;
 }
 
-int32_t rsabocanec::semaphore::post() noexcept {
+int32_t descriptor::semaphore::post() noexcept {
     if (sem_ == nullptr) {
         return EINVAL;
     }
@@ -47,7 +47,7 @@ int32_t rsabocanec::semaphore::post() noexcept {
     return 0;
 }
 
-int32_t rsabocanec::named_semaphore::open(std::string_view name, uint32_t initial_value/* = 0ul*/) noexcept {
+int32_t descriptor::named_semaphore::open(std::string_view name, uint32_t initial_value/* = 0ul*/) noexcept {
     if (sem_ != nullptr) {
         if (::sem_close(static_cast<sem_t*>(static_cast<void*>(sem_))) == -1) {
             return errno;
@@ -72,7 +72,7 @@ int32_t rsabocanec::named_semaphore::open(std::string_view name, uint32_t initia
     return result;
 }
 
-int32_t rsabocanec::named_semaphore::close() noexcept {
+int32_t descriptor::named_semaphore::close() noexcept {
     if (sem_) {
         if (::sem_close(static_cast<sem_t*>(static_cast<void*>(sem_))) == -1) {
             return errno;
@@ -90,7 +90,7 @@ int32_t rsabocanec::named_semaphore::close() noexcept {
     return 0;
 }
 
-int32_t rsabocanec::unnamed_semaphore::init(std::string_view name, uint32_t initial_value) noexcept {
+int32_t descriptor::unnamed_semaphore::init(std::string_view name, uint32_t initial_value) noexcept {
     if (auto const result = close(); result != 0) {
         return result;
     }
@@ -139,7 +139,7 @@ int32_t rsabocanec::unnamed_semaphore::init(std::string_view name, uint32_t init
     return 0;
 }
 
-int32_t rsabocanec::unnamed_semaphore::close() noexcept {
+int32_t descriptor::unnamed_semaphore::close() noexcept {
     if (sem_) {
         if (::sem_destroy(static_cast<sem_t*>(static_cast<void*>(sem_))) == -1) {
             return errno;

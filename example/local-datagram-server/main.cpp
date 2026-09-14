@@ -8,15 +8,15 @@
 #include <unistd.h>
 
 auto main()->int {
-    std::unique_ptr<rsabocanec::datagram_socket> server =
-        std::make_unique<rsabocanec::local_datagram_socket>();
+    std::unique_ptr<descriptor::datagram_socket> server =
+        std::make_unique<descriptor::local_datagram_socket>();
 
     constexpr std::string_view address = "/tmp/local-datagram-server";
 
     if (auto const result = server->bind(address); result != 0) {
         std::cerr   << "Failed to bind to " << address
                     << " with result " << result
-                    << rsabocanec::descriptor::error_description(result)
+                    << descriptor::descriptor::error_description(result)
                     << std::endl;
         return result;
     }
@@ -36,7 +36,7 @@ auto main()->int {
             std::cerr   << "Failed to read from " << receive_address
                         << " with result "
                         << result << ' '
-                        << rsabocanec::descriptor::error_description(result)
+                        << descriptor::descriptor::error_description(result)
                         << std::endl;
             break;
         }
@@ -53,7 +53,7 @@ auto main()->int {
             std::cerr   << "Failed to write to "
                         << receive_address
                         << " with result " << result << ' '
-                        << rsabocanec::descriptor::error_description(result)
+                        << descriptor::descriptor::error_description(result)
                         << std::endl;
             break;
         }

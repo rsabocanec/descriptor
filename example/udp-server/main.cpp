@@ -6,7 +6,7 @@
 #include <iostream>
 
 auto main()->int {
-    rsabocanec::udp_socket server{};
+    descriptor::udp_socket server{};
 
     constexpr std::string_view address = "127.0.0.1";
     constexpr uint16_t port = 9999;
@@ -14,7 +14,7 @@ auto main()->int {
     if (auto const result = server.bind(address, port); result != 0) {
         std::cerr   << "Failed to bind to " << address << ':' << port
                     << " with result " << result
-                    << rsabocanec::descriptor::error_description(result)
+                    << descriptor::descriptor::error_description(result)
                     << std::endl;
         return result;
     }
@@ -34,7 +34,7 @@ auto main()->int {
         if (result != 0) {
             std::cerr   << "Failed to read with result "
                         << result << ' '
-                        << rsabocanec::descriptor::error_description(result)
+                        << descriptor::descriptor::error_description(result)
                         << std::endl;
             break;
         }
@@ -51,7 +51,7 @@ auto main()->int {
             std::cerr   << "Failed to write to "
                         << receive_address << ':' << receive_port
                         << " with result " << result << ' '
-                        << rsabocanec::descriptor::error_description(result)
+                        << descriptor::descriptor::error_description(result)
                         << std::endl;
             break;
         }

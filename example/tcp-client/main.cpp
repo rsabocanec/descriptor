@@ -6,11 +6,11 @@
 #include <iostream>
 
 auto main()->int {
-    rsabocanec::tcp_socket client{};
+    descriptor::tcp_socket client{};
 
     auto result = client.connect("127.0.0.1", 9999);
     if (result != 0) {
-        std::cerr << "Connect failed; " << rsabocanec::descriptor::error_description(result) << '\n';
+        std::cerr << "Connect failed; " << descriptor::descriptor::error_description(result) << '\n';
     }
     else {
         std::string request{};
@@ -23,7 +23,7 @@ auto main()->int {
                 client.write(request.cbegin(), request.cend());
 
             if (write_result != 0) {
-                std::cerr << "Write failed; " << rsabocanec::descriptor::error_description(write_result) << '\n';
+                std::cerr << "Write failed; " << descriptor::descriptor::error_description(write_result) << '\n';
             }
             else {
                 std::cout << "Sent '" << request << "'\n";
@@ -31,7 +31,7 @@ auto main()->int {
                 std::array<char, 24> response{};
                 auto const [read_result, bytes_read] = client.read(response);
                 if (read_result != 0) {
-                    std::cerr << "Read failed; " << rsabocanec::descriptor::error_description(read_result) << '\n';
+                    std::cerr << "Read failed; " << descriptor::descriptor::error_description(read_result) << '\n';
                 }
                 else {
                     std::cout << "Received '" << std::string_view(response.cbegin(), bytes_read) << "'\n";
@@ -43,7 +43,7 @@ auto main()->int {
 
         result = client.disconnect();
         if (result != 0) {
-            std::cerr << "Disconnect failed; " << rsabocanec::descriptor::error_description(result) << '\n';
+            std::cerr << "Disconnect failed; " << descriptor::descriptor::error_description(result) << '\n';
         }
     }
 

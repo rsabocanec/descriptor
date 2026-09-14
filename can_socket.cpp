@@ -11,7 +11,7 @@
 #include <unistd.h>
 #include <netinet/in.h>
 
-namespace rsabocanec {
+namespace descriptor {
 std::size_t can_socket_frame::can_frame_buffer_size = sizeof(struct can_frame);
 
 can_socket_frame::can_socket_frame(std::span<const std::byte> buffer) noexcept
@@ -116,4 +116,4 @@ int32_t can_socket::bind(std::string_view address) noexcept {
 
     return 0;
 }
-} // rsabocanec
+} // descriptor

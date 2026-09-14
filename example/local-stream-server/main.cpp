@@ -9,7 +9,7 @@
 namespace {
     volatile std::sig_atomic_t signal_status;
 
-    rsabocanec::local_stream_socket *g_server{nullptr};
+    descriptor::local_stream_socket *g_server{nullptr};
 
     constexpr std::string_view server_path{"/tmp/local-stream-server"};
 }
@@ -34,22 +34,22 @@ void signal_handler(int signal) {
 auto main()->int {
     std::signal(SIGTERM, signal_handler);
 
-    rsabocanec::local_stream_socket server{};
+    descriptor::local_stream_socket server{};
     g_server = &server;
 
     auto result = server.bind(server_path);
     if (result != 0) {
-        std::cerr << "bind failed; " << rsabocanec::descriptor::error_description(result) << '\n';
+        std::cerr << "bind failed; " << descriptor::descriptor::error_description(result) << '\n';
     }
     else {
         result = server.listen();
         if (result != 0) {
-            std::cerr << "listen faeled: " << rsabocanec::descriptor::error_description(result) << '\n';
+            std::cerr << "listen faeled: " << descriptor::descriptor::error_description(result) << '\n';
         }
         else {
             auto accept_result = server.accept();
             while (accept_result.has_value()) {
-                std::thread([](rsabocanec::acceptor&& acceptor) {
+                std::thread([](descriptor::acceptor&& acceptor) {
                     std::cout << "New connection accepted\n";
 
                     std::array<char, 24> request{};
@@ -64,7 +64,7 @@ auto main()->int {
                         bytes_read = std::get<1>(read_result);
 
                         if (read_error != 0) {
-                            std::cerr << "read failed; " << rsabocanec::descriptor::error_description(read_error) << '\n';
+                            std::cerr << "read failed; " << descriptor::descriptor::error_description(read_error) << '\n';
                         }
                         else if (bytes_read == 0) {
                             std::cout << "Connection from " << acceptor.peer() << " has been closed!\n";
@@ -77,7 +77,7 @@ auto main()->int {
                                 acceptor.write(response.cbegin(), response.cend());
 
                             if (write_result != 0) {
-                                std::cerr << "write failed; " << rsabocanec::descriptor::error_description(write_result) << '\n';
+                                std::cerr << "write failed; " << descriptor::descriptor::error_description(write_result) << '\n';
                             }
                             else {
                                 std::cout << "Sent '" << response << "'\n";
@@ -91,7 +91,7 @@ auto main()->int {
                 accept_result = server.accept();
             }
 
-            std::cerr << "accept failed: " << rsabocanec::descriptor::error_description(accept_result.error()) << '\n';
+            std::cerr << "accept failed: " << descriptor::descriptor::error_description(accept_result.error()) << '\n';
         }
     }
 

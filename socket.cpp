@@ -7,7 +7,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-namespace rsabocanec {
+namespace descriptor {
 
 std::tuple<int32_t, int32_t> socket::splice_impl(const descriptor& source, std::size_t count,
                                                  std::optional<int32_t> offset/* = std::nullopt*/) const noexcept {
@@ -39,4 +39,4 @@ int32_t socket::shutdown() const noexcept {
     return 0;
 }
 
-} // rsabocanec
+} // descriptor

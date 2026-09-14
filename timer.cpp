@@ -8,7 +8,7 @@
 
 #include <unistd.h>
 
-namespace rsabocanec {
+namespace descriptor {
 static_assert(
     static_cast<int>(clock_type::clock_realtime) == CLOCK_REALTIME &&
     static_cast<int>(clock_type::clock_monotonic) == CLOCK_MONOTONIC &&

@@ -15,7 +15,7 @@
 #define _FILE_OFFSET_BITS 64
 #include <unistd.h>
 
-namespace rsabocanec {
+namespace descriptor {
 
 void report_error(std::ostream& os, int32_t error_num, std::string_view prefix,
                                   std::source_location location) noexcept {
