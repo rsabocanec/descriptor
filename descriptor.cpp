@@ -11,7 +11,7 @@
 #include <sys/types.h>
 #include <sys/select.h>
 #include <sys/time.h>
-
+#include <poll.h>
 #include <signal.h>
 #include <err.h>
 
@@ -147,12 +147,54 @@ int32_t descriptor::select(int64_t timeout_nanoseconds) const noexcept {
     return ready > 0 ? 0 : ETIMEDOUT;
 }
 
-int32_t descriptor::poll(int64_t timeout_nanoseconds) const noexcept {
+int32_t descriptor::poll(int64_t timeout_nanoseconds, int16_t &returned_events) const noexcept {
+    returned_events = 0;
+
     if (descriptor_.load() == -1) {
         return -1;
     }
 
-    return -1;
+    sigset_t sigmask{};
+
+    ::sigemptyset(&sigmask);
+    ::sigaddset(&sigmask, SIGINT);
+    ::sigaddset(&sigmask, SIGTERM);
+    ::sigaddset(&sigmask, SIGHUP);
+    ::sigaddset(&sigmask, SIGQUIT);
+    ::sigaddset(&sigmask, SIGABRT);
+
+    sigset_t oldmask{};
+
+    const struct timespec ts {
+        .tv_sec = static_cast<time_t>(timeout_nanoseconds / 1'000'000'000),
+        .tv_nsec = static_cast<long>(timeout_nanoseconds % 1'000'000'000)
+    };
+
+    struct pollfd pfd{
+        .fd = descriptor_.load(),
+        .events = POLLIN,
+        .revents = 0
+    };
+
+    ::pthread_sigmask(SIG_SETMASK, nullptr, &oldmask);
+    
+    int32_t ready{};
+
+    pthread_cleanup_push([](void *arg) {
+        ::pthread_sigmask(SIG_SETMASK, static_cast<sigset_t*>(arg), nullptr);
+    }, &oldmask);
+
+    ready = ::ppoll(&pfd, 1, &ts, &sigmask);
+
+    if (ready == -1) {
+        ready = errno;
+    }
+
+    pthread_cleanup_pop(0);
+
+    returned_events = pfd.revents;
+    
+    return ready > 0 ? 0 : ETIMEDOUT;
 }
 
 std::string_view descriptor::error_description(int32_t error_code) noexcept {

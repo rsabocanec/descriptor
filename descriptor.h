@@ -134,15 +134,16 @@ public:
     }
 
     template <typename Period>
-    [[nodiscard]] int32_t poll(duration<Period> timeout) const noexcept {
-        return poll(std::chrono::duration_cast<std::chrono::nanoseconds>(timeout).count());
+    [[nodiscard]] int32_t poll(duration<Period> timeout, int16_t &returned_events) const noexcept {
+        return poll(std::chrono::duration_cast<std::chrono::nanoseconds>(timeout).count(), 
+                    returned_events);
     }
 
     [[nodiscard]] static std::string_view error_description(int32_t error_code) noexcept;
 
 protected:
     [[nodiscard]] int32_t select(int64_t timeout_nanoseconds) const noexcept;
-    [[nodiscard]] int32_t poll(int64_t timeout_nanoseconds) const noexcept;
+    [[nodiscard]] int32_t poll(int64_t timeout_nanoseconds, int16_t &returned_events) const noexcept;
 };
 
 }
