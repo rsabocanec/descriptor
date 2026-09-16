@@ -1,3 +1,7 @@
+#ifndef _GNU_SOURCE
+# define _GNU_SOURCE
+#endif
+
 #include "descriptor.h"
 
 #include <ostream>
@@ -35,7 +39,15 @@ void report_error(std::ostream& os, int32_t error_num, std::string_view prefix,
 
 }
 
-
+void polled_state::set_state(int16_t revents) noexcept {
+    has_something_to_read_ = revents & POLLIN;
+    has_something_to_write_ = revents & POLLOUT;
+    has_error_ = revents & POLLERR;
+    has_hangup_ = revents & POLLHUP;
+    has_peer_closed_ = revents & POLLRDHUP;
+    has_invalid_request_ = revents & POLLNVAL;
+    has_exception_ = revents & POLLPRI;
+}
 
 int32_t descriptor::close() noexcept {
     if (descriptor_.load() != -1) {
@@ -147,8 +159,8 @@ int32_t descriptor::select(int64_t timeout_nanoseconds) const noexcept {
     return ready > 0 ? 0 : ETIMEDOUT;
 }
 
-int32_t descriptor::poll(int64_t timeout_nanoseconds, int16_t &returned_events) const noexcept {
-    returned_events = 0;
+int32_t descriptor::poll(int64_t timeout_nanoseconds, polled_state &state) const noexcept {
+    state = {};
 
     if (descriptor_.load() == -1) {
         return -1;
@@ -172,7 +184,7 @@ int32_t descriptor::poll(int64_t timeout_nanoseconds, int16_t &returned_events) 
 
     struct pollfd pfd{
         .fd = descriptor_.load(),
-        .events = POLLIN,
+        .events = POLLIN | POLLERR | POLLHUP | POLLNVAL | POLLRDHUP | POLLPRI,
         .revents = 0
     };
 
@@ -192,8 +204,8 @@ int32_t descriptor::poll(int64_t timeout_nanoseconds, int16_t &returned_events) 
 
     pthread_cleanup_pop(0);
 
-    returned_events = pfd.revents;
-    
+    state.set_state(pfd.revents);
+
     return ready > 0 ? 0 : ETIMEDOUT;
 }
 

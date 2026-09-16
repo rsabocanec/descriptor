@@ -43,6 +43,45 @@ void report_error(
     std::string_view prefix = {},
     std::source_location location = std::source_location::current()) noexcept;
 
+struct polled_state {
+    bool has_something_to_read_{};
+    bool has_something_to_write_{};
+    bool has_error_{};
+    bool has_hangup_{};
+    bool has_peer_closed_{};
+    bool has_invalid_request_{};
+    bool has_exception_{};
+
+    bool has_something_to_read() const noexcept {
+        return has_something_to_read_;
+    }
+
+    bool has_something_to_write() const noexcept {
+        return has_something_to_write_;
+    }
+
+    bool has_error() const noexcept {
+        return has_error_;
+    }
+
+    bool has_hangup() const noexcept {
+        return has_hangup_;
+    }
+
+    bool has_peer_closed() const noexcept {
+        return has_peer_closed_;
+    }
+
+    bool has_invalid_request() const noexcept {
+        return has_invalid_request_;
+    }
+
+    bool has_exception() const noexcept {
+        return has_exception_;
+    }
+
+    void set_state(int16_t revents) noexcept;
+};
 
 class descriptor {
 protected:
@@ -134,16 +173,15 @@ public:
     }
 
     template <typename Period>
-    [[nodiscard]] int32_t poll(duration<Period> timeout, int16_t &returned_events) const noexcept {
-        return poll(std::chrono::duration_cast<std::chrono::nanoseconds>(timeout).count(), 
-                    returned_events);
+    [[nodiscard]] int32_t poll(duration<Period> timeout, polled_state &state) const noexcept {
+        return poll(std::chrono::duration_cast<std::chrono::nanoseconds>(timeout).count(), state);
     }
 
     [[nodiscard]] static std::string_view error_description(int32_t error_code) noexcept;
 
 protected:
     [[nodiscard]] int32_t select(int64_t timeout_nanoseconds) const noexcept;
-    [[nodiscard]] int32_t poll(int64_t timeout_nanoseconds, int16_t &returned_events) const noexcept;
+    [[nodiscard]] int32_t poll(int64_t timeout_nanoseconds, polled_state &state) const noexcept;
 };
 
 }
