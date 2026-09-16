@@ -30,9 +30,6 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 namespace descriptor {
 
-template <typename Period>
-using duration = std::chrono::duration<int64_t, Period>;
-
 // Helper method for invoking a method in the timer class
 template <class Tuple, size_t... Indices>
 inline void invoke(Tuple&& func_values, std::index_sequence<Indices...>) noexcept{

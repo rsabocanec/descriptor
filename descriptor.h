@@ -17,6 +17,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #pragma once
 
+#include <chrono>
 #include <atomic>
 #include <span>
 #include <tuple>
@@ -32,6 +33,9 @@ class os;
 }
 
 namespace descriptor {
+
+template <typename Period>
+using duration = std::chrono::duration<int64_t, Period>;
 
 void report_error(
     std::ostream& os,
@@ -124,10 +128,21 @@ public:
                                                               std::optional<int32_t> offset_out = std::nullopt,
                                                               uint32_t flags = 0ul) const noexcept;
 
-    [[nodiscard]] int32_t select(int32_t timeout) const noexcept;
-    [[nodiscard]] int32_t poll(int32_t timeout) const noexcept;
+    template <typename Period>                                                              
+    [[nodiscard]] int32_t select(duration<Period> timeout) const noexcept {
+        return select(std::chrono::duration_cast<std::chrono::nanoseconds>(timeout).count());
+    }
+
+    template <typename Period>
+    [[nodiscard]] int32_t poll(duration<Period> timeout) const noexcept {
+        return poll(std::chrono::duration_cast<std::chrono::nanoseconds>(timeout).count());
+    }
 
     [[nodiscard]] static std::string_view error_description(int32_t error_code) noexcept;
+
+protected:
+    [[nodiscard]] int32_t select(int64_t timeout_nanoseconds) const noexcept;
+    [[nodiscard]] int32_t poll(int64_t timeout_nanoseconds) const noexcept;
 };
 
 }

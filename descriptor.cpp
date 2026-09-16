@@ -9,7 +9,10 @@
 #include <cstring>
 
 #include <sys/types.h>
+#include <sys/select.h>
+#include <sys/time.h>
 
+#include <signal.h>
 #include <err.h>
 
 #define _FILE_OFFSET_BITS 64
@@ -100,11 +103,55 @@ std::tuple<int32_t, int32_t> descriptor::splice(const descriptor& source, std::s
     return result;
 }
 
-int32_t descriptor::select(int32_t/* timeout*/) const noexcept {
-    return -1;
+int32_t descriptor::select(int64_t timeout_nanoseconds) const noexcept {
+    if (descriptor_.load() == -1) {
+        return -1;
+    }
+
+    sigset_t sigmask{};
+
+    ::sigemptyset(&sigmask);
+    ::sigaddset(&sigmask, SIGINT);
+    ::sigaddset(&sigmask, SIGTERM);
+    ::sigaddset(&sigmask, SIGHUP);
+    ::sigaddset(&sigmask, SIGQUIT);
+    ::sigaddset(&sigmask, SIGABRT);
+
+    sigset_t oldmask{};
+
+    const struct timespec ts {
+        .tv_sec = static_cast<time_t>(timeout_nanoseconds / 1'000'000'000),
+        .tv_nsec = static_cast<long>(timeout_nanoseconds % 1'000'000'000)
+    };
+
+    fd_set rfds;
+    FD_ZERO(&rfds);
+    FD_SET(descriptor_.load(), &rfds);
+
+    ::pthread_sigmask(SIG_SETMASK, nullptr, &oldmask);
+    
+    int32_t ready{};
+
+    pthread_cleanup_push([](void *arg) {
+        ::pthread_sigmask(SIG_SETMASK, static_cast<sigset_t*>(arg), nullptr);
+    }, &oldmask);
+
+    ready = ::pselect(descriptor_.load() + 1, &rfds, nullptr, nullptr, &ts, &sigmask);
+
+    if (ready == -1) {
+        ready = errno;
+    }
+
+    pthread_cleanup_pop(0);
+
+    return ready > 0 ? 0 : ETIMEDOUT;
 }
 
-int32_t descriptor::poll(int32_t/* timeout*/) const noexcept {
+int32_t descriptor::poll(int64_t timeout_nanoseconds) const noexcept {
+    if (descriptor_.load() == -1) {
+        return -1;
+    }
+
     return -1;
 }
 
