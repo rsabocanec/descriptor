@@ -3,7 +3,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-namespace rsabocanec {
+namespace descriptor {
 
     int32_t local_datagram_socket::create() noexcept {
         auto result = close();
@@ -97,4 +97,4 @@ std::tuple<int32_t, int32_t>
 
     return result;
 }
-} // rsabocanec
+} // descriptor

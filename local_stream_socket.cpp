@@ -7,7 +7,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 
-namespace rsabocanec {
+namespace descriptor {
 int32_t local_stream_socket::create() noexcept {
     auto result = close();
     if (result == 0) {
@@ -93,4 +93,4 @@ int32_t local_stream_socket::connect(std::string_view address) noexcept {
 
     return 0;
 }
-} // rsabocanec
+} // descriptor

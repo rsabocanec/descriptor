@@ -20,23 +20,23 @@ auto main(int argc, char** argv) ->int {
 
     constexpr std::size_t shared_memory_size = 1024;
 
-    rsabocanec::shared_memory shared_mem{};
+    descriptor::shared_memory shared_mem{};
 
     if (auto const open_result = shared_mem.open(filename, O_RDWR); open_result != 0) {
         std::cerr << "Failed to open shared memory " << filename << " with result " << open_result << ' '
-                    << rsabocanec::descriptor::error_description(open_result) << '\n';
+                    << descriptor::descriptor::error_description(open_result) << '\n';
         return open_result;
     }
 
     std::cout << "Shared memory " << filename << " opened successfully\n";
 
-    rsabocanec::named_semaphore semaphore{};
+    descriptor::named_semaphore semaphore{};
 
     std::string semaphore_name = "/" + std::string(filename) + "_semaphore";
 
     if (auto const open_result = semaphore.open(semaphore_name); open_result != 0) {
         std::cerr << "Failed to open semaphore " << semaphore_name << " with result " << open_result << ' '
-                    << rsabocanec::descriptor::error_description(open_result) << '\n';
+                    << descriptor::descriptor::error_description(open_result) << '\n';
         return open_result;
     }
 
@@ -44,7 +44,7 @@ auto main(int argc, char** argv) ->int {
 
     if (auto const post_result = semaphore.post(); post_result != 0) {
         std::cerr << "Failed to post on semaphore " << semaphore_name << " with result " << post_result << ' '
-                << rsabocanec::descriptor::error_description(post_result) << '\n';
+                << descriptor::descriptor::error_description(post_result) << '\n';
         return post_result;
     }
 
@@ -57,7 +57,7 @@ auto main(int argc, char** argv) ->int {
 
         if (auto const wait_result = semaphore.wait(); wait_result != 0) {
             std::cerr << "Failed to wait on semaphore " << semaphore_name << " with result " << wait_result << ' '
-                    << rsabocanec::descriptor::error_description(wait_result) << '\n';
+                    << descriptor::descriptor::error_description(wait_result) << '\n';
             return wait_result;
         }
 
@@ -66,7 +66,7 @@ auto main(int argc, char** argv) ->int {
         auto const [read_result, bytes_read] = shared_mem.read(buffer);
         if (read_result != 0) {
             std::cerr << "Failed to read from shared memory " << filename << " with result " << read_result << ' '
-                    << rsabocanec::descriptor::error_description(read_result) << '\n';
+                    << descriptor::descriptor::error_description(read_result) << '\n';
         }
         else {
             if (bytes_read == 0) {
@@ -78,14 +78,14 @@ auto main(int argc, char** argv) ->int {
 
                 if (auto const truncate_result = shared_mem.truncate(0); truncate_result != 0) {
                     std::cerr << "Failed to truncate shared memory " << filename << " with result " << truncate_result << ' '
-                            << rsabocanec::descriptor::error_description(truncate_result) << '\n';
+                            << descriptor::descriptor::error_description(truncate_result) << '\n';
                 }
             }
         }
 
         if (auto const post_result = semaphore.post(); post_result != 0) {
             std::cerr << "Failed to post on semaphore " << semaphore_name << " with result " << post_result << ' '
-                    << rsabocanec::descriptor::error_description(post_result) << '\n';
+                    << descriptor::descriptor::error_description(post_result) << '\n';
             return post_result;
         }
 

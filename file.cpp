@@ -5,7 +5,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
-int32_t rsabocanec::file::open(std::string_view path, int32_t flags, int32_t mode/* = 0*/) noexcept {
+int32_t descriptor::file::open(std::string_view path, int32_t flags, int32_t mode/* = 0*/) noexcept {
     descriptor_ = ::open(path.data(), flags, mode);
 
     if (descriptor_.load() == -1) {
@@ -15,7 +15,7 @@ int32_t rsabocanec::file::open(std::string_view path, int32_t flags, int32_t mod
     return 0;
 }
 
-int64_t rsabocanec::file::size() const noexcept {
+int64_t descriptor::file::size() const noexcept {
     if (descriptor_.load() == -1) {
         return -1;
     }
@@ -28,7 +28,7 @@ int64_t rsabocanec::file::size() const noexcept {
     return static_cast<int64_t>(st.st_size);
 }
 
-int32_t rsabocanec::file::truncate(std::size_t size) noexcept {
+int32_t descriptor::file::truncate(std::size_t size) noexcept {
     if (descriptor_.load() == -1) {
         return -1;
     }
@@ -41,7 +41,7 @@ int32_t rsabocanec::file::truncate(std::size_t size) noexcept {
     return 0;
 }
 
-int32_t rsabocanec::file::memory_map(memory_map_access access, std::size_t size/* = 0644*/) noexcept {
+int32_t descriptor::file::memory_map(memory_map_access access, std::size_t size/* = 0644*/) noexcept {
     if (descriptor_.load() == -1) {
         return -1;
     }
@@ -86,7 +86,7 @@ int32_t rsabocanec::file::memory_map(memory_map_access access, std::size_t size/
     return 0;
 }
 
-int32_t rsabocanec::file::memory_unmap() noexcept {
+int32_t descriptor::file::memory_unmap() noexcept {
     if (memory_map_addr_ == nullptr) {
         return 0; // Nothing to unmap
     }
@@ -102,7 +102,7 @@ int32_t rsabocanec::file::memory_unmap() noexcept {
     return 0;
 }
 
-int32_t rsabocanec::file::memory_sync(memory_map_sync_flags flags) noexcept {
+int32_t descriptor::file::memory_sync(memory_map_sync_flags flags) noexcept {
     if (memory_map_addr_ == nullptr) {
         return 0; // Nothing to sync
     }
@@ -115,7 +115,7 @@ int32_t rsabocanec::file::memory_sync(memory_map_sync_flags flags) noexcept {
     return 0;
 }
 
-int32_t rsabocanec::file::memory_lock(std::size_t size/* = 0*/) noexcept {
+int32_t descriptor::file::memory_lock(std::size_t size/* = 0*/) noexcept {
     if (memory_map_addr_ == nullptr) {
         return 0; // Nothing to lock
     }
@@ -132,7 +132,7 @@ int32_t rsabocanec::file::memory_lock(std::size_t size/* = 0*/) noexcept {
     return 0;
 }
 
-int32_t rsabocanec::file::memory_unlock() noexcept {
+int32_t descriptor::file::memory_unlock() noexcept {
     if (memory_map_addr_ == nullptr || memory_lock_length_ == 0) {
         return 0; // Nothing to unlock
     }

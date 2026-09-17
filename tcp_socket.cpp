@@ -6,7 +6,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-namespace rsabocanec {
+namespace descriptor {
 
 int32_t tcp_socket::create() noexcept {
     auto result = close();
@@ -105,4 +105,4 @@ int32_t tcp_socket::connect(std::string_view address, uint16_t port) noexcept {
 
     return 0;
 }
-} // rsabocanec
+} // descriptor

@@ -12,11 +12,12 @@ Redistribution and use in source and binary forms, with or without modification,
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef RSABOCANEC_DESCRIPTOR_H
-#define RSABOCANEC_DESCRIPTOR_H
+#ifndef DESCRIPTOR_DESCRIPTOR_H
+#define DESCRIPTOR_DESCRIPTOR_H
 
 #pragma once
 
+#include <chrono>
 #include <atomic>
 #include <span>
 #include <tuple>
@@ -31,7 +32,10 @@ namespace std {
 class os;
 }
 
-namespace rsabocanec {
+namespace descriptor {
+
+template <typename Period>
+using duration = std::chrono::duration<int64_t, Period>;
 
 void report_error(
     std::ostream& os,
@@ -39,6 +43,45 @@ void report_error(
     std::string_view prefix = {},
     std::source_location location = std::source_location::current()) noexcept;
 
+struct polled_state {
+    bool has_something_to_read_{};
+    bool has_something_to_write_{};
+    bool has_error_{};
+    bool has_hangup_{};
+    bool has_peer_closed_{};
+    bool has_invalid_request_{};
+    bool has_exception_{};
+
+    bool has_something_to_read() const noexcept {
+        return has_something_to_read_;
+    }
+
+    bool has_something_to_write() const noexcept {
+        return has_something_to_write_;
+    }
+
+    bool has_error() const noexcept {
+        return has_error_;
+    }
+
+    bool has_hangup() const noexcept {
+        return has_hangup_;
+    }
+
+    bool has_peer_closed() const noexcept {
+        return has_peer_closed_;
+    }
+
+    bool has_invalid_request() const noexcept {
+        return has_invalid_request_;
+    }
+
+    bool has_exception() const noexcept {
+        return has_exception_;
+    }
+
+    void set_state(int16_t revents) noexcept;
+};
 
 class descriptor {
 protected:
@@ -124,11 +167,22 @@ public:
                                                               std::optional<int32_t> offset_out = std::nullopt,
                                                               uint32_t flags = 0ul) const noexcept;
 
-    [[nodiscard]] int32_t select(int32_t timeout) const noexcept;
-    [[nodiscard]] int32_t poll(int32_t timeout) const noexcept;
+    template <typename Period>                                                              
+    [[nodiscard]] int32_t select(duration<Period> &&timeout) const noexcept {
+        return select(std::chrono::duration_cast<std::chrono::nanoseconds>(timeout).count());
+    }
+
+    template <typename Period>
+    [[nodiscard]] int32_t poll(duration<Period> &&timeout, polled_state &state) const noexcept {
+        return poll(std::chrono::duration_cast<std::chrono::nanoseconds>(timeout).count(), state);
+    }
 
     [[nodiscard]] static std::string_view error_description(int32_t error_code) noexcept;
+
+protected:
+    [[nodiscard]] int32_t select(int64_t timeout_nanoseconds) const noexcept;
+    [[nodiscard]] int32_t poll(int64_t timeout_nanoseconds, polled_state &state) const noexcept;
 };
 
 }
-#endif //RSABOCANEC_DESCRIPTOR_H
+#endif //DESCRIPTOR_DESCRIPTOR_H

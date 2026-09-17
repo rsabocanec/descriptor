@@ -31,19 +31,19 @@ auto main()->int {
     std::signal(SIGTERM, signal_handler);
     std::signal(SIGINT, signal_handler);
 
-    rsabocanec::can_socket publisher{};
+    descriptor::can_socket publisher{};
 
     constexpr std::string_view address = "vcan0";
 
     if (auto const result = publisher.bind(address); result != 0) {
         std::cerr   << "Failed to bind to " << address
                     << " with result " << result
-                    << rsabocanec::descriptor::error_description(result)
+                    << descriptor::descriptor::error_description(result)
                     << std::endl;
         return result;
     }
 
-    std::vector<uint8_t> buffer(rsabocanec::can_socket_frame::can_frame_buffer_size);
+    std::vector<uint8_t> buffer(descriptor::can_socket_frame::can_frame_buffer_size);
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -52,13 +52,13 @@ auto main()->int {
     std::uniform_int_distribution<uint64_t> can_payload_distrib{};
     std::uniform_int_distribution<uint8_t> can_payload_length_distrib(1, 8);
 
-    rsabocanec::can_socket_frame frame{};
+    descriptor::can_socket_frame frame{};
 
     while (!stop_flag.load()) {
         frame.header(can_id_distrib(gen));
 
         auto const pl = can_payload_distrib(gen);
-        frame.payload(std::bit_cast<rsabocanec::can_payload>(pl));
+        frame.payload(std::bit_cast<descriptor::can_payload>(pl));
 
         frame.payload_length(can_payload_length_distrib(gen));
 
@@ -75,7 +75,7 @@ auto main()->int {
 
         if (result != 0) {
             std::cerr   << "Failed to send CAN payload: (" << result << ") "
-                        << rsabocanec::descriptor::error_description(result)
+                        << descriptor::descriptor::error_description(result)
                         << ". Sent " << count << " bytes\n";
             return result;
         }

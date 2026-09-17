@@ -16,7 +16,7 @@
 namespace {
     volatile std::sig_atomic_t signal_status;
 
-    rsabocanec::can_socket *g_subscriber{nullptr};
+    descriptor::can_socket *g_subscriber{nullptr};
 }
 
 void signal_handler(int signal) {
@@ -41,7 +41,7 @@ auto main()->int {
     std::signal(SIGTERM, signal_handler);
     std::signal(SIGINT, signal_handler);
 
-    rsabocanec::can_socket subscriber{};
+    descriptor::can_socket subscriber{};
     g_subscriber = &subscriber;
 
     constexpr std::string_view address = "vcan0";
@@ -49,24 +49,24 @@ auto main()->int {
     if (auto const result = subscriber.bind(address); result != 0) {
         std::cerr   << "Failed to bind to " << address
                     << " with result " << result
-                    << rsabocanec::descriptor::error_description(result)
+                    << descriptor::descriptor::error_description(result)
                     << std::endl;
         return result;
     }
 
-    std::vector<uint8_t> buffer(rsabocanec::can_socket_frame::can_frame_buffer_size);
+    std::vector<uint8_t> buffer(descriptor::can_socket_frame::can_frame_buffer_size);
 
     for (;;) {
         auto const [result, count] = subscriber.read(buffer.begin(), buffer.end());
 
         if (result != 0) {
             std::cerr   << "Failed to read CAN payload: (" << result << ") "
-                        << rsabocanec::descriptor::error_description(result)
+                        << descriptor::descriptor::error_description(result)
                         << '\n';
             return result;
         }
 
-        rsabocanec::can_socket_frame frame(buffer.cbegin(), buffer.cend());
+        descriptor::can_socket_frame frame(buffer.cbegin(), buffer.cend());
 
         std::cout   << "CAN frame: 0x"
                     << std::hex << std::setfill('0') << std::setw(8)

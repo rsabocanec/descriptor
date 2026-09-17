@@ -7,7 +7,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-namespace rsabocanec {
+namespace descriptor {
 
 int32_t udp_socket::create() noexcept {
     if (descriptor_.load() == -1) {
@@ -121,4 +121,4 @@ std::tuple<int32_t, int32_t> udp_socket::write_to(
 
     return result;
 }
-} // rsabocanec
+} // descriptor

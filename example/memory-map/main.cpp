@@ -20,20 +20,20 @@ auto main(int argc, char** argv)->int {
     constexpr std::size_t new_file_size = 1024;
 
     {
-        rsabocanec::file file{};
+        descriptor::file file{};
 
         auto result = file.open(filename);
         
         if (result != 0) {
             std::cerr << "Failed to open file " << filename << " with result " << result << ' '
-                    << rsabocanec::descriptor::error_description(result) << '\n';
+                    << descriptor::descriptor::error_description(result) << '\n';
             return result;
         }
 
-        result = file.memory_map(rsabocanec::memory_map_access::write, new_file_size);
+        result = file.memory_map(descriptor::memory_map_access::write, new_file_size);
         if (result != 0) {
             std::cerr << "Failed to memory map file " << filename << " with result " << result << ' '
-                    << rsabocanec::descriptor::error_description(result) << '\n';
+                    << descriptor::descriptor::error_description(result) << '\n';
             return result;
         }
 
@@ -44,13 +44,13 @@ auto main(int argc, char** argv)->int {
     
     // Print the content of the file to verify the write operation
     {
-        rsabocanec::reader reader(filename);
+        descriptor::reader reader(filename);
 
         std::array<char, new_file_size> buffer{};
         auto [read_result, bytes_read] = reader.read(buffer);
         if (read_result != 0) {
             std::cerr << "Failed to read from file " << filename << " with result " << read_result << ' '
-                      << rsabocanec::descriptor::error_description(read_result) << '\n';
+                      << descriptor::descriptor::error_description(read_result) << '\n';
             return read_result;
         }
 

@@ -9,7 +9,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-namespace rsabocanec {
+namespace descriptor {
 int32_t stream_socket::listen(int32_t max_connections) const noexcept {
     if (descriptor_.load() == -1) {
         return -1;
@@ -47,4 +47,4 @@ int32_t stream_socket::disconnect() noexcept {
 
     return close();
 }
-} // rsabocanec
+} // descriptor
