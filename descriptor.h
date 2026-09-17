@@ -168,12 +168,12 @@ public:
                                                               uint32_t flags = 0ul) const noexcept;
 
     template <typename Period>                                                              
-    [[nodiscard]] int32_t select(duration<Period> timeout) const noexcept {
+    [[nodiscard]] int32_t select(duration<Period> &&timeout) const noexcept {
         return select(std::chrono::duration_cast<std::chrono::nanoseconds>(timeout).count());
     }
 
     template <typename Period>
-    [[nodiscard]] int32_t poll(duration<Period> timeout, polled_state &state) const noexcept {
+    [[nodiscard]] int32_t poll(duration<Period> &&timeout, polled_state &state) const noexcept {
         return poll(std::chrono::duration_cast<std::chrono::nanoseconds>(timeout).count(), state);
     }
 
