@@ -5,10 +5,10 @@
 #include <iostream>
 
 auto main()->int {
-    descriptor::reader reader{"/tmp/test-poll"};
+    descriptor::reader reader{"/tmp/test-select"};
 
     if (!reader.valid()) {
-        std::cerr << "Failed to open file /tmp/test-poll\n";
+        std::cerr << "Failed to open file /tmp/test-select\n";
         return EXIT_FAILURE;
     }
 
@@ -19,18 +19,10 @@ auto main()->int {
     while (!read_completed) {
         std::array<char, 1024> buffer{};
 
-        descriptor::polled_state state{};
+        auto const select_result = reader.select(100ms);
 
-        auto const poll_result = reader.poll(100ms, state);
-
-
-        switch (poll_result) {
-            case 0: 
-                if (state.has_error()) {
-                    std::cerr << "\nPoll error detected!\n";
-                    return EXIT_FAILURE;
-                }
-                else if (state.has_something_to_read()) {
+        switch (select_result) {
+            case 0: {
                     auto const [read_error, bytes_read] = reader.read(buffer);
                     if (read_error != 0) {
                         std::cerr << "\nRead failed; " << descriptor::descriptor::error_description(read_error) << '\n';
@@ -46,17 +38,13 @@ auto main()->int {
                                     << std::string_view (buffer.cbegin(), bytes_read) << "\n";
                     }
                 }
-                else if (state.has_hangup()) {
-                    std::cout << "\nFile closed!\n";
-                    return EXIT_SUCCESS;
-                }
                 break;
             case ETIMEDOUT:
                 std::cout << " . ";
                 std::this_thread::sleep_for(1s);
                 continue;
             default:
-                std::cerr << "Poll failed; " << descriptor::descriptor::error_description(poll_result) << '\n';
+                std::cerr << "Select failed; " << descriptor::descriptor::error_description(select_result) << '\n';
                 return EXIT_FAILURE;
         }
     }

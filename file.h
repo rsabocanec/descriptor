@@ -129,6 +129,11 @@ public:
     }
 
     template <typename Period>
+    [[nodiscard]] auto select(duration<Period> &&timeout) const noexcept {
+        return file_.select(std::forward<duration<Period>>(timeout));
+    }
+
+    template <typename Period>
     [[nodiscard]] auto poll(duration<Period> &&timeout, polled_state &state) const noexcept {
         return file_.poll(std::forward<duration<Period>>(timeout), state);
     }
@@ -153,7 +158,7 @@ public:
     bool valid() const noexcept {
         return file_.valid();
     }
-    
+
     template<std::random_access_iterator It>
     [[nodiscard]] std::tuple<int32_t, int32_t> write(It first, std::size_t count) const noexcept {
         return file_.write(first, count);
@@ -171,6 +176,11 @@ public:
 
     [[nodiscard]] std::tuple<int32_t, int32_t> write(std::span<const std::byte> buffer) const noexcept {
         return file_.write(buffer);
+    }
+
+    template <typename Period>
+    [[nodiscard]] auto select(duration<Period> &&timeout) const noexcept {
+        return file_.select(std::forward<duration<Period>>(timeout));
     }
 
     template <typename Period>

@@ -27,3 +27,4 @@ add_subdirectory(shared-memory-producer)
 add_subdirectory(timer)
 
 add_subdirectory(poll)
+add_subdirectory(select)
