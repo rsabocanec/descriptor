@@ -1,5 +1,7 @@
 #include <local_stream_socket.h>
 
+#include "../utility.hpp"
+
 #include <array>
 #include <thread>
 #include <iostream>
@@ -11,7 +13,7 @@ namespace {
 
     descriptor::local_stream_socket *g_server{nullptr};
 
-    constexpr std::string_view server_path{"/tmp/local-stream-server"};
+    std::string server_path{};
 }
 
 void signal_handler(int signal) {
@@ -24,15 +26,22 @@ void signal_handler(int signal) {
                 [[maybe_unused]] auto const result = g_server->shutdown();
                 g_server = nullptr;
             }
-	    ::unlink(server_path.data());
+	        ::unlink(server_path.c_str());
             break;
         default:
             break;
     }
 }
 
-auto main()->int {
+auto main(int argc, char **argv)->int {
     std::signal(SIGTERM, signal_handler);
+
+    const std::string server_path_option{"-s,--server-path"};
+
+    auto [logger, app] = descriptor::example::utility::init_app(
+        argc, argv, {server_path_option}, "Test local stream server");
+
+    server_path = app->get_option(server_path_option)->as<std::string>();
 
     descriptor::local_stream_socket server{};
     g_server = &server;

@@ -1,11 +1,20 @@
 #include <file.h>
 
+#include "../utility.hpp"
+
 #include <array>
 #include <thread>
 #include <iostream>
 
-auto main()->int {
-    descriptor::reader reader{"/tmp/test-select"};
+auto main(int argc, char **argv)->int {
+    const std::string input_filename{"-i,--input"};
+
+    auto [logger, app] = descriptor::example::utility::init_app(
+        argc, argv, {input_filename}, "Test select() function");
+
+    const std::string filename{app->get_option(input_filename)->as<std::string>()};
+
+    descriptor::reader reader{filename};
 
     if (!reader.valid()) {
         std::cerr << "Failed to open file /tmp/test-select\n";

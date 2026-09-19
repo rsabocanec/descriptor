@@ -1,14 +1,22 @@
 #include <file.h>
 
+#include "../utility.hpp"
+
 #include <array>
 #include <thread>
-#include <iostream>
 
-auto main()->int {
-    descriptor::reader reader{"/tmp/test-poll"};
+auto main(int argc, char **argv)->int {
+    const std::string input_filename{"-i,--input"};
+
+    auto [logger, app] = descriptor::example::utility::init_app(
+        argc, argv, {input_filename}, "Test poll() function");
+
+    const std::string filename{app->get_option(input_filename)->as<std::string>()};
+
+    descriptor::reader reader{filename};
 
     if (!reader.valid()) {
-        std::cerr << "Failed to open file /tmp/test-poll\n";
+        logger->error("Failed to open file {}", filename);
         return EXIT_FAILURE;
     }
 
@@ -27,40 +35,38 @@ auto main()->int {
         switch (poll_result) {
             case 0: 
                 if (state.has_error()) {
-                    std::cerr << "\nPoll error detected!\n";
+                    logger->error("Poll error detected!");
                     return EXIT_FAILURE;
                 }
                 else if (state.has_something_to_read()) {
                     auto const [read_error, bytes_read] = reader.read(buffer);
                     if (read_error != 0) {
-                        std::cerr << "\nRead failed; " << descriptor::descriptor::error_description(read_error) << '\n';
+                        logger->error("Read failed; {}", descriptor::descriptor::error_description(read_error));
                         return EXIT_FAILURE;
                     }
                     else if (bytes_read == 0) {
-                        std::cout << "\nRead completed!\n";
+                        logger->info("Read completed!");
                         read_completed = true;
                     }
                     else {
-                        std::string_view read_bytes(buffer.cbegin(), bytes_read);
-                        std::cout   << "\nRead: " 
-                                    << std::string_view (buffer.cbegin(), bytes_read) << "\n";
+                        logger->info("Read: {}", std::string_view(buffer.cbegin(), bytes_read));
                     }
                 }
                 else if (state.has_hangup()) {
-                    std::cout << "\nFile closed!\n";
-                    return EXIT_SUCCESS;
+                    logger->info("Input file closed!");
+                    read_completed = true;
                 }
                 break;
             case ETIMEDOUT:
-                std::cout << " . ";
+                fmt::print(fg(fmt::color::yellow), " . ");
                 std::this_thread::sleep_for(1s);
                 continue;
             default:
-                std::cerr << "Poll failed; " << descriptor::descriptor::error_description(poll_result) << '\n';
+                logger->error("Poll failed; {}", descriptor::descriptor::error_description(poll_result));
                 return EXIT_FAILURE;
         }
     }
 
-    std::cout << "\nEXIT\n";
+    fmt::print("\nEXIT!\n");
     return EXIT_SUCCESS;
 }
