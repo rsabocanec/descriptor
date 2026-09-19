@@ -7,6 +7,6 @@ add_executable(udp-client main.cpp)
 
 add_dependencies(udp-client descriptor)
 
-target_link_libraries(udp-client PRIVATE descriptor)
-
 target_include_directories(udp-client PRIVATE ${CMAKE_SOURCE_DIR})
+
+target_link_libraries(udp-client PRIVATE descriptor CLI11::CLI11 spdlog::spdlog fmt::fmt)

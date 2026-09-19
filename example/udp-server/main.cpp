@@ -1,21 +1,26 @@
 #include <udp_socket.h>
 
+#include "../utility.hpp"
+
 #include <array>
 #include <span>
 
-#include <iostream>
+auto main(int argc, char **argv)->int {
 
-auto main()->int {
+    const std::string server_address_option{"-a,--address"};
+    const std::string server_port_option{"-p,--port"};
+
+    auto [logger, app] = descriptor::example::utility::init_app(
+        argc, argv, {server_address_option, server_port_option}, "Test UDP server");
+
     descriptor::udp_socket server{};
 
-    constexpr std::string_view address = "127.0.0.1";
-    constexpr uint16_t port = 9999;
+    const std::string server_address = app->get_option(server_address_option)->as<std::string>();
+    const uint16_t server_port = app->get_option(server_port_option)->as<uint16_t>();
 
-    if (auto const result = server.bind(address, port); result != 0) {
-        std::cerr   << "Failed to bind to " << address << ':' << port
-                    << " with result " << result
-                    << descriptor::descriptor::error_description(result)
-                    << std::endl;
+    if (auto const result = server.bind(server_address, server_port); result != 0) {
+        logger->error("Failed to bind to {}:{} with result {} '{}'", 
+            server_address, server_port, result, descriptor::descriptor::error_description(result));
         return result;
     }
 
@@ -32,15 +37,14 @@ auto main()->int {
             server.read_from(buffer, receive_address, receive_port);
 
         if (result != 0) {
-            std::cerr   << "Failed to read with result "
-                        << result << ' '
-                        << descriptor::descriptor::error_description(result)
-                        << std::endl;
+            logger->error("Failed to receive from {}:{} with error {} '{}'", 
+                receive_address, receive_port, result, descriptor::descriptor::error_description(result));
             break;
         }
         else {
             request = std::string(static_cast<const char*>(static_cast<const void*>(buffer.data())), count);
-            std::cout << "Received " << request << '\n';
+            logger->info("Received {} from {}:{}", request, receive_address, receive_port);
+            fmt::print(fg(fmt::color::light_green), "Received {}\n", request);
         }
         }
         {
@@ -48,11 +52,8 @@ auto main()->int {
             server.write_to(request.cbegin(), request.cend(),receive_address, receive_port);
 
         if (result != 0) {
-            std::cerr   << "Failed to write to "
-                        << receive_address << ':' << receive_port
-                        << " with result " << result << ' '
-                        << descriptor::descriptor::error_description(result)
-                        << std::endl;
+            logger->error("Failed to send to {}:{} with error {} '{}'", 
+                receive_address, receive_port, result, descriptor::descriptor::error_description(result));
             break;
         }
         }

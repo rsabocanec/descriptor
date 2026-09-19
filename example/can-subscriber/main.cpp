@@ -1,10 +1,11 @@
 #include <can_socket.h>
 
+#include "../utility.hpp"
+
 #include <random>
 #include <thread>
 #include <chrono>
 #include <iomanip>
-#include <iostream>
 
 #include <csignal>
 
@@ -35,22 +36,25 @@ void signal_handler(int signal) {
     }
 }
 
-auto main()->int {
+auto main(int argc, char **argv)->int {
     using namespace std::chrono_literals;
 
     std::signal(SIGTERM, signal_handler);
     std::signal(SIGINT, signal_handler);
 
+    const std::string can_device_option{"-c,--can-device"};
+
+    auto [logger, app] = descriptor::example::utility::init_app(
+        argc, argv, {can_device_option}, "Test CAN subscriber");
+
+    const std::string can_device = app->get_option(can_device_option)->as<std::string>();
+
     descriptor::can_socket subscriber{};
     g_subscriber = &subscriber;
-
-    constexpr std::string_view address = "vcan0";
-
-    if (auto const result = subscriber.bind(address); result != 0) {
-        std::cerr   << "Failed to bind to " << address
-                    << " with result " << result
-                    << descriptor::descriptor::error_description(result)
-                    << std::endl;
+    
+    if (auto const result = subscriber.bind(can_device); result != 0) {
+        logger->error("Failed to bind to {} with result {} {}", 
+            can_device, result, descriptor::descriptor::error_description(result));
         return result;
     }
 
@@ -60,23 +64,18 @@ auto main()->int {
         auto const [result, count] = subscriber.read(buffer.begin(), buffer.end());
 
         if (result != 0) {
-            std::cerr   << "Failed to read CAN payload: (" << result << ") "
-                        << descriptor::descriptor::error_description(result)
-                        << '\n';
+            logger->error("Failed to read CAN payload: ({}) {}", 
+                result, descriptor::descriptor::error_description(result));
             return result;
         }
 
         descriptor::can_socket_frame frame(buffer.cbegin(), buffer.cend());
 
-        std::cout   << "CAN frame: 0x"
-                    << std::hex << std::setfill('0') << std::setw(8)
-                    << ::ntohl(frame.header().uint32_id_) << '\t'
-                    << std::setw(16)
-                    << ::__bswap_64(std::bit_cast<uint64_t>(frame.payload()))
-                    << std::endl;
+        logger->info("CAN frame: 0x{:08x}\t{:016x}", 
+            ::ntohl(frame.header().uint32_id_), ::__bswap_64(std::bit_cast<uint64_t>(frame.payload())));
     }
 
-    std::cout << "EXIT!\n";
+    fmt::print(fg(fmt::color::green), "\nEXIT!\n");
 
     return EXIT_SUCCESS;
 }

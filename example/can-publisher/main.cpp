@@ -1,9 +1,10 @@
 #include <can_socket.h>
 
+#include "../utility.hpp"
+
 #include <random>
 #include <thread>
 #include <chrono>
-#include <iostream>
 
 #include <csignal>
 
@@ -25,21 +26,23 @@ void signal_handler(int signal) {
     }
 }
 
-auto main()->int {
+auto main(int argc, char **argv)->int {
     using namespace std::chrono_literals;
 
     std::signal(SIGTERM, signal_handler);
     std::signal(SIGINT, signal_handler);
 
+    const std::string can_device_option{"-c,--can-device"};
+
+    auto [logger, app] = descriptor::example::utility::init_app(
+        argc, argv, {can_device_option}, "Test CAN publisher");
+
     descriptor::can_socket publisher{};
 
-    constexpr std::string_view address = "vcan0";
+    const std::string can_device = app->get_option(can_device_option)->as<std::string>();
 
-    if (auto const result = publisher.bind(address); result != 0) {
-        std::cerr   << "Failed to bind to " << address
-                    << " with result " << result
-                    << descriptor::descriptor::error_description(result)
-                    << std::endl;
+    if (auto const result = publisher.bind(can_device); result != 0) {
+        logger->error("Failed to bind to {}: {}", can_device, descriptor::descriptor::error_description(result));
         return result;
     }
 
@@ -65,32 +68,28 @@ auto main()->int {
         auto const [ser_result, ser_count] = frame.as_bytes(buffer.begin(), buffer.end());
 
         if (ser_result != 0) {
-            std::cerr   << "Failed to serialize CAN frame: "
-                        << ser_result << ", count: " << ser_count << '\n';
+            logger->error("Failed to serialize CAN frame: {}, count: {}", ser_result, ser_count);
             return ser_result;
         }
 
         auto const [result, count] =
             publisher.write(buffer.cbegin(), buffer.cbegin() + ser_count);
 
-        if (result != 0) {
-            std::cerr   << "Failed to send CAN payload: (" << result << ") "
-                        << descriptor::descriptor::error_description(result)
-                        << ". Sent " << count << " bytes\n";
+        if (result != 0) {            
+            logger->error("Failed to send CAN payload: ({}) {}. Sent {} bytes", 
+                result, descriptor::descriptor::error_description(result), count);
             return result;
         }
 
         if (count != ser_count) {
-            std::cout   << "Failed to send CAN payload length ("
-                        << static_cast<uint16_t>(frame.payload_length())
-                        << "), sent " << count - 8
-                        << " instead\n";
+            logger->error("Failed to send CAN payload length ({}), sent {} instead", 
+                frame.payload_length(), count - 8);
         }
 
         std::this_thread::sleep_for(100ms);
     }
 
-    std::cout << "EXIT!\n";
+    fmt::print(fg(fmt::color::green), "\nEXIT!\n");
 
     return EXIT_SUCCESS;
 }
