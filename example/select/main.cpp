@@ -4,7 +4,6 @@
 
 #include <array>
 #include <thread>
-#include <iostream>
 
 auto main(int argc, char **argv)->int {
     const std::string input_filename{"-i,--input"};
@@ -17,7 +16,7 @@ auto main(int argc, char **argv)->int {
     descriptor::reader reader{filename};
 
     if (!reader.valid()) {
-        std::cerr << "Failed to open file /tmp/test-select\n";
+        logger->error("Failed to open file {}", filename);
         return EXIT_FAILURE;
     }
 
@@ -34,30 +33,28 @@ auto main(int argc, char **argv)->int {
             case 0: {
                     auto const [read_error, bytes_read] = reader.read(buffer);
                     if (read_error != 0) {
-                        std::cerr << "\nRead failed; " << descriptor::descriptor::error_description(read_error) << '\n';
+                        logger->error("Read failed; {}", descriptor::descriptor::error_description(read_error));
                         return EXIT_FAILURE;
                     }
                     else if (bytes_read == 0) {
-                        std::cout << "\nRead completed!\n";
+                        logger->info("Read completed!");
                         read_completed = true;
                     }
                     else {
-                        std::string_view read_bytes(buffer.cbegin(), bytes_read);
-                        std::cout   << "\nRead: " 
-                                    << std::string_view (buffer.cbegin(), bytes_read) << "\n";
+                        logger->info("Read: {}", std::string_view(buffer.cbegin(), bytes_read));
                     }
                 }
                 break;
             case ETIMEDOUT:
-                std::cout << " . ";
+                fmt::print(" . ");
                 std::this_thread::sleep_for(1s);
                 continue;
             default:
-                std::cerr << "Select failed; " << descriptor::descriptor::error_description(select_result) << '\n';
+                logger->error("Select failed; {}", descriptor::descriptor::error_description(select_result));
                 return EXIT_FAILURE;
         }
     }
 
-    std::cout << "\nEXIT\n";
+    fmt::print("\nEXIT\n");
     return EXIT_SUCCESS;
 }

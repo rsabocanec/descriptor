@@ -1,21 +1,21 @@
 #include <tcp_socket.h>
 #include <file.h>
 
+#include "../utility.hpp"
+
 #include <array>
 #include <span>
-
-#include <iostream>
 
 #include <cstring>
 
 auto main(int argc, char** argv)->int {
 
-    if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " filename\n";
-        return EXIT_FAILURE;
-    }
+    const std::string mmap_filename_option{"-m,--mmap-file"};
 
-    std::string_view filename{argv[1]};
+    auto [logger, app] = descriptor::example::utility::init_app(
+        argc, argv, {mmap_filename_option}, "Test poll() function");
+
+    const std::string filename{app->get_option(mmap_filename_option)->as<std::string>()};
 
     constexpr std::size_t new_file_size = 1024;
 
@@ -25,15 +25,14 @@ auto main(int argc, char** argv)->int {
         auto result = file.open(filename);
         
         if (result != 0) {
-            std::cerr << "Failed to open file " << filename << " with result " << result << ' '
-                    << descriptor::descriptor::error_description(result) << '\n';
+            logger->error("Failed to open file {} with result {}", 
+                filename, descriptor::descriptor::error_description(result));
             return result;
         }
 
         result = file.memory_map(descriptor::memory_map_access::write, new_file_size);
         if (result != 0) {
-            std::cerr << "Failed to memory map file " << filename << " with result " << result << ' '
-                    << descriptor::descriptor::error_description(result) << '\n';
+            logger->error("Failed to memory map file {} with result {}", filename, descriptor::descriptor::error_description(result));
             return result;
         }
 
@@ -49,13 +48,11 @@ auto main(int argc, char** argv)->int {
         std::array<char, new_file_size> buffer{};
         auto [read_result, bytes_read] = reader.read(buffer);
         if (read_result != 0) {
-            std::cerr << "Failed to read from file " << filename << " with result " << read_result << ' '
-                      << descriptor::descriptor::error_description(read_result) << '\n';
+            logger->error("Failed to read from file {} with result {}", filename, descriptor::descriptor::error_description(read_result));
             return read_result;
         }
 
-        std::cout.write(buffer.data(), bytes_read);
-        std::cout << '\n';
+        fmt::println("{}",std::string_view(buffer.data(), bytes_read));
     }
 
     return EXIT_SUCCESS;
