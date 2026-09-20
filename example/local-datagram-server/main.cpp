@@ -1,23 +1,27 @@
 #include <local_datagram_socket.h>
 
+#include "../utility.hpp"
+
 #include <array>
 #include <memory>
-#include <iostream>
 
-#include <fcntl.h>
 #include <unistd.h>
 
-auto main()->int {
+auto main(int argc, char **argv)->int {
+
+    const std::string socket_filename_option{"-s,--socket-file"};
+
+    auto [logger, app] = descriptor::example::utility::init_app(
+        argc, argv, {socket_filename_option}, "Test poll() function");
+
+    const std::string socket_filename{app->get_option(socket_filename_option)->as<std::string>()};
+
     std::unique_ptr<descriptor::datagram_socket> server =
         std::make_unique<descriptor::local_datagram_socket>();
 
-    constexpr std::string_view address = "/tmp/local-datagram-server";
-
-    if (auto const result = server->bind(address); result != 0) {
-        std::cerr   << "Failed to bind to " << address
-                    << " with result " << result
-                    << descriptor::descriptor::error_description(result)
-                    << std::endl;
+    if (auto const result = server->bind(socket_filename); result != 0) {
+        logger->error("Failed to bind to {} with result {} {}", 
+            socket_filename, result, descriptor::descriptor::error_description(result));
         return result;
     }
 
@@ -33,16 +37,13 @@ auto main()->int {
             server->read_from(buffer, receive_address);
 
         if (result != 0) {
-            std::cerr   << "Failed to read from " << receive_address
-                        << " with result "
-                        << result << ' '
-                        << descriptor::descriptor::error_description(result)
-                        << std::endl;
+            logger->error("Failed to read from {} with result {} {}", 
+                receive_address, result, descriptor::descriptor::error_description(result));
             break;
         }
         else {
             request = std::string(static_cast<const char*>(static_cast<const void*>(buffer.data())), count);
-            std::cout << "Received " << request << " from " << receive_address << '\n';
+            logger->info("Received {} from {}", request, receive_address);
         }
         }
         {
@@ -50,17 +51,14 @@ auto main()->int {
             server->write_to(request.cbegin(), request.cend(), receive_address);
 
         if (result != 0) {
-            std::cerr   << "Failed to write to "
-                        << receive_address
-                        << " with result " << result << ' '
-                        << descriptor::descriptor::error_description(result)
-                        << std::endl;
+            logger->error("Failed to write to {} with result {} {}", 
+                receive_address, result, descriptor::descriptor::error_description(result));
             break;
         }
         }
     }
 
-    ::unlink(address.data());
+    ::unlink(socket_filename.c_str());
 
     return EXIT_SUCCESS;
 }

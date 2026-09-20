@@ -1,14 +1,21 @@
 #include <local_stream_socket.h>
 
+#include "../utility.hpp"
+
 #include <array>
 #include <span>
 
 #include <iostream>
 
-auto main()->int {
+auto main(int argc, char **argv)->int {
+    const std::string server_path_option{"-s,--server-path"};
+
+    auto [logger, app] = descriptor::example::utility::init_app(
+        argc, argv, {server_path_option}, "Test local stream server");
+
     descriptor::local_stream_socket client{};
 
-    auto result = client.connect("/tmp/local-stream-server");
+    auto result = client.connect(app->get_option(server_path_option)->as<std::string>());
     if (result != 0) {
         std::cerr << "Connect failed; " << descriptor::descriptor::error_description(result) << '\n';
     }

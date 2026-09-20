@@ -1,65 +1,67 @@
 #include <tcp_socket.h>
 #include <file.h>
 
+#include "../utility.hpp"
+
 #include <array>
 #include <span>
-
-#include <iostream>
 
 #include <fcntl.h>
 
 auto main(int argc, char** argv)->int {
 
-    if (argc < 4) {
-        std::cerr << "Usage: " << argv[0] << " filename address port\n";
-        return EXIT_FAILURE;
-    }
+    const std::string filename_option{"-f,--filename"};
+    const std::string address_option{"-a,--address"};
+    const std::string port_option{"-p,--port"};
 
-    std::string_view filename{argv[1]};
+    auto [logger, app] = descriptor::example::utility::init_app(
+        argc, argv, {filename_option, address_option, port_option}, "Test TCP splice");
+
+
+    const std::string filename = app->get_option(filename_option)->as<std::string>();
+    const std::string address = app->get_option(address_option)->as<std::string>();
+    const uint16_t port = app->get_option(port_option)->as<uint16_t>();
 
     descriptor::file file{};
 
     auto result = file.open(filename, O_RDONLY);
     if (result != 0) {
-        std::cerr << "Failed to open file " << filename << " with result " << result << ' '
-                  << descriptor::descriptor::error_description(result) << '\n';
+        logger->error("Failed to open file {} with result {} '{}'", 
+            filename, result, descriptor::descriptor::error_description(result));
         return result;
     }
 
-    std::string_view address{argv[2]};
-    auto const port = static_cast<uint16_t>(std::stoul(argv[3]));
-    
     descriptor::tcp_socket client{};
 
     result = client.connect(address, port);
     if (result != 0) {
-        std::cerr << "Connect to " << address << ':' << port << " failed;\n"
-                  << descriptor::descriptor::error_description(result) << '\n';
+        logger->error("Connect to {}:{} failed; {}", address, port, descriptor::descriptor::error_description(result));
     }
     else {
         auto const [splice_result, bytes_spliced] = client.splice(file, file.size());
 
         if (splice_result != 0) {
-            std::cerr << "Splice failed; " << descriptor::descriptor::error_description(splice_result) << '\n';
+            logger->error("Splice failed; {}", descriptor::descriptor::error_description(splice_result));
         }
         else {
-            std::cout << "Spliced " << bytes_spliced << " bytes from file " << filename
-                      << " to TCP socket " << address << ':' << port << '\n';
+            logger->info("Spliced {} bytes from file {} to TCP socket {}:{}", bytes_spliced, filename, address, port);
         }
 
-        std::cout << "Disconnecting!\n";
+        fmt::print(fg(fmt::color::green), "\nDisconnecting!\n");
 
         result = client.disconnect();
         if (result != 0) {
-            std::cerr << "Disconnect failed; " << descriptor::descriptor::error_description(result) << '\n';
+            logger->error("Disconnect failed; {}", descriptor::descriptor::error_description(result));
         }
     }
 
     result = file.close();
     if (result != 0) {
-        std::cerr << "Failed to close file " << filename << " with result " << result << ' '
-                  << descriptor::descriptor::error_description(result) << '\n';
+        logger->error("Failed to close file {} with error {} '{}'", 
+            filename, result, descriptor::descriptor::error_description(result));
     }
+
+    fmt::print(fg(fmt::color::green), "\nEXIT!\n");
 
     return EXIT_SUCCESS;
 }

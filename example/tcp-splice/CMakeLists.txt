@@ -7,6 +7,6 @@ add_executable(tcp-splice main.cpp)
 
 add_dependencies(tcp-splice descriptor)
 
-target_link_libraries(tcp-splice PRIVATE descriptor)
-
 target_include_directories(tcp-splice PRIVATE ${CMAKE_SOURCE_DIR})
+
+target_link_libraries(tcp-splice PRIVATE descriptor CLI11::CLI11 spdlog::spdlog fmt::fmt)

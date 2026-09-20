@@ -1,12 +1,12 @@
 #include <timer.h>
 
-#include <iostream>
+#include "../utility.hpp"
 
 auto main(int argc, char** argv) -> int {
     using namespace std::chrono_literals;
 
     {
-    std::cout << "Timer example #1\n";
+    fmt::print(fg(fmt::color::orange), "Timer example #1\n");
 
     descriptor::timer t;
     auto result = t.arm(1s);
@@ -23,7 +23,7 @@ auto main(int argc, char** argv) -> int {
         }
         else {
             static int32_t counter = 0;
-            std::cout << ++counter << std::endl;
+            fmt::print(fg(fmt::color::yellow), "{}\n", ++counter);
         }
     }
 
@@ -35,7 +35,7 @@ auto main(int argc, char** argv) -> int {
     }
 
     {
-    std::cout << "Timer example #2\n";
+    fmt::print(fg(fmt::color::orange), "Timer example #2\n");
     descriptor::timer t;
 
     std::promise<int32_t> promise{};
@@ -43,7 +43,7 @@ auto main(int argc, char** argv) -> int {
 
     t.arm(1s, std::move(promise), []() {
         static int32_t counter = 0;
-        std::cout << ++counter << std::endl;
+        fmt::print(fg(fmt::color::yellow), "{}\n", ++counter);
     });
 
     std::this_thread::sleep_for(7500ms);
@@ -78,7 +78,7 @@ auto main(int argc, char** argv) -> int {
     }
 
     {
-    std::cout << "Deadline example\n";
+    fmt::print(fg(fmt::color::orange), "Deadline example\n");
     descriptor::deadline dl;
 
     std::promise<int32_t> promise{};
@@ -86,7 +86,7 @@ auto main(int argc, char** argv) -> int {
 
     dl.arm(2s, std::move(promise), []() {
         static int32_t counter = 0;
-        std::cout << ++counter << std::endl;
+        fmt::print(fg(fmt::color::yellow), "{}\n", ++counter);
     });
 
     std::this_thread::sleep_for(7500ms);

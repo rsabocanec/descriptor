@@ -1,9 +1,10 @@
 #include <tcp_socket.h>
 
+#include "../utility.hpp"
+
 #include <array>
 #include <thread>
 #include <fstream>
-#include <iostream>
 
 #include <csignal>
 
@@ -28,27 +29,40 @@ void signal_handler(int signal) {
     }
 }
 
-auto main()->int {
+auto main(int argc, char **argv)->int {
     std::signal(SIGTERM, signal_handler);
     std::signal(SIGINT, signal_handler);
+
+    const std::string server_address_option{"-a,--address"};
+    const std::string server_port_option{"-p,--port"};
+
+    auto [logger, app] = descriptor::example::utility::init_app(
+        argc, argv, {server_address_option, server_port_option}, "Test TCP server");
+    
+    const std::string server_address = app->get_option(server_address_option)->as<std::string>();
+    const uint16_t server_port = app->get_option(server_port_option)->as<uint16_t>();
 
     descriptor::tcp_socket server{};
     g_server = &server;
 
-    auto result = server.bind("127.0.0.1", 9999);
+    auto result = server.bind(server_address, server_port);
     if (result != 0) {
-        std::cerr << "bind failed; " << descriptor::descriptor::error_description(result) << '\n';
+        logger->error("Bind failed; {} '{}'", result, descriptor::descriptor::error_description(result));
     }
     else {
+        logger->info("Server bound to {}:{}", server_address, server_port);
+
         result = server.listen();
         if (result != 0) {
-            std::cerr << "listen faeled: " << descriptor::descriptor::error_description(result) << '\n';
+            logger->error("Listen failed; {} '{}'", result, descriptor::descriptor::error_description(result));
         }
         else {
+            logger->info("Server listening on {}:{}", server_address, server_port);
+            
             auto accept_result = server.accept();
             while (accept_result.has_value()) {
-                std::thread([](descriptor::acceptor&& acceptor) {
-                    std::cout << "New connection from " << acceptor.peer() << ':' << acceptor.peer_port() << '\n';
+                std::thread([logger](descriptor::acceptor&& acceptor) {
+                    logger->info("New connection from {}:{}", acceptor.peer(), acceptor.peer_port());
 
                     std::array<char, 24> request{};
 
@@ -63,47 +77,45 @@ auto main()->int {
                         bytes_read = std::get<1>(read_result);
 
                         if (read_error != 0) {
-                            std::cerr << "read failed; " << descriptor::descriptor::error_description(read_error) << '\n';
+                            logger->error("Receive failed; {} '{}'", read_error, descriptor::descriptor::error_description(read_error));
                         }
                         else if (bytes_read == 0) {
-                            std::cout << "Connection from " << acceptor.peer() << ':' << acceptor.peer_port()
-                                      << " has been closed!\n";
+                            logger->info("Connection from {}:{} has been closed!", acceptor.peer(), acceptor.peer_port());
                         }
                         else {
                             const std::string_view response(request.cbegin(), bytes_read);
                             ofs << response;
                             
-                            std::cout << "Received '" << response << "'\n";
+                            logger->info("Received '{}'", response);
 #if 0
                             auto const [write_result, bytes_written] =
                                 acceptor.write(response.cbegin(), response.cend());
 
                             if (write_result != 0) {
-                                std::cerr << "Write failed; " << descriptor::descriptor::error_description(write_result) << '\n';
+                                logger->error("Send failed; {} '{}'", write_result, descriptor::descriptor::error_description(write_result));
                             }
                             else {
-                                std::cout << "Sent '" << response << "'\n";
+                                logger->info("Sent '{}'", response);
                             }
 #endif                            
                         }
                     } while (read_error == 0 && bytes_read > 0);
 
-                    std::cout << "Shutting down the acceptor!\n";
+                    logger->info("Shutting down the acceptor!");
 
                     [[maybe_unused]] auto shutdown_result = acceptor.shutdown();
 
-                    std::cout << "Client " <<  acceptor.peer() << ':' << acceptor.peer_port()
-                              << " disconnected!\n";
+                    logger->info("Client {}:{} disconnected!", acceptor.peer(), acceptor.peer_port());
 
                 }, std::move(accept_result.value())).detach();
 
                 accept_result = server.accept();
             }
 
-            std::cerr << "Accept failed: " << descriptor::descriptor::error_description(accept_result.error()) << '\n';
+            logger->error("Accept failed; {} '{}'", accept_result.error(), descriptor::descriptor::error_description(accept_result.error()));
         }
     }
 
-    std::cout << "EXIT\n";
+    fmt::print(fg(fmt::color::green), "\nEXIT!\n");
     return EXIT_SUCCESS;
 }

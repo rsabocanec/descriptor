@@ -9,7 +9,7 @@
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/build/example/shared-memory-producer/shared-memory-producer",
-      "args": ["/tmp/test-mem"],
+      "args": ["-s", "/tmp/test-mem"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],

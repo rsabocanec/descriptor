@@ -8,4 +8,5 @@ add_executable(can-subscriber main.cpp)
 add_dependencies(can-subscriber descriptor)
 
 target_include_directories(can-subscriber PRIVATE ${CMAKE_SOURCE_DIR})
-target_link_libraries(can-subscriber PRIVATE descriptor)
+
+target_link_libraries(can-subscriber PRIVATE descriptor CLI11::CLI11 spdlog::spdlog fmt::fmt)

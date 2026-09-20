@@ -8,4 +8,5 @@ add_executable(tcp-server main.cpp)
 add_dependencies(tcp-server descriptor)
 
 target_include_directories(tcp-server PRIVATE ${CMAKE_SOURCE_DIR})
-target_link_libraries(tcp-server PRIVATE descriptor)
+
+target_link_libraries(tcp-server PRIVATE descriptor CLI11::CLI11 spdlog::spdlog fmt::fmt)

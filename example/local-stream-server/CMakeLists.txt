@@ -8,4 +8,5 @@ add_executable(local-stream-server main.cpp)
 add_dependencies(local-stream-server descriptor)
 
 target_include_directories(local-stream-server PRIVATE ${CMAKE_SOURCE_DIR})
-target_link_libraries(local-stream-server PRIVATE descriptor)
+
+target_link_libraries(local-stream-server PRIVATE descriptor CLI11::CLI11 fmt::fmt spdlog::spdlog)
