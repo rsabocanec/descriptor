@@ -5,6 +5,32 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
+// Check constants
+static_assert(O_RDONLY == descriptor::open_flags::read_only, "O_RDONLY does not match descriptor::open_flags::read_only");
+static_assert(O_WRONLY == descriptor::open_flags::write_only, "O_WRONLY does not match descriptor::open_flags::write_only");
+static_assert(O_RDWR == descriptor::open_flags::read_write, "O_RDWR does not match descriptor::open_flags::read_write");
+static_assert(O_CREAT == descriptor::open_flags::create, "O_CREAT does not match descriptor::open_flags::create");
+static_assert(O_EXCL == descriptor::open_flags::exclusive, "O_EXCL does not match descriptor::open_flags::exclusive");
+static_assert(O_TRUNC == descriptor::open_flags::truncate, "O_TRUC does not match descriptor::open_flags::truncate");
+static_assert(O_APPEND == descriptor::open_flags::append, "O_APPEND does not match descriptor::open_flags::append");
+
+
+static_assert(descriptor::open_mode::read_by_owner == S_IRUSR, "S_IRUSR does not match descriptor::open_mode::read_by_owner");
+static_assert(descriptor::open_mode::write_by_owner == S_IWUSR, "S_IWUSR does not match descriptor::open_mode::read_by_owner");
+static_assert(descriptor::open_mode::exec_by_owner == S_IXUSR, "S_IXUSR does not match descriptor::open_mode::read_by_owner");
+static_assert(descriptor::open_mode::all_by_owner == S_IRWXU, "S_IRWXU does not match descriptor::open_mode::read_by_owner");
+
+static_assert(descriptor::open_mode::read_by_group == S_IRGRP, "S_IRGRP does not match descriptor::open_mode::read_by_group");
+static_assert(descriptor::open_mode::write_by_group == S_IWGRP, "S_IWGRP does not match descriptor::open_mode::write_by_group");
+static_assert(descriptor::open_mode::exec_by_group == S_IXGRP, "S_IXGRP does not match descriptor::open_mode::exec_by_group");
+static_assert(descriptor::open_mode::all_by_group == S_IRWXG, "S_IRWXG does not match descriptor::open_mode::all_by_group");
+
+static_assert(descriptor::open_mode::read_by_others == S_IROTH, "S_IROTH does not match descriptor::open_mode::read_by_others");
+static_assert(descriptor::open_mode::write_by_others == S_IWOTH, "S_IWOTH does not match descriptor::open_mode::write_by_others");
+static_assert(descriptor::open_mode::exec_by_others == S_IXOTH, "S_IXOTH does not match descriptor::open_mode::exec_by_others");
+static_assert(descriptor::open_mode::all_by_others == S_IRWXO, "S_IRWXO does not match descriptor::open_mode::all_by_others");
+
+
 int32_t descriptor::file::open(std::string_view path, int32_t flags, int32_t mode/* = 0*/) noexcept {
     descriptor_ = ::open(path.data(), flags, mode);
 

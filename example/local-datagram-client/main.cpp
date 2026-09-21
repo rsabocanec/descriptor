@@ -6,8 +6,6 @@
 #include <memory>
 #include <iostream>
 
-#include <fcntl.h>
-#include <unistd.h>
 
 auto main(int argc, char **argv)->int {
     const std::string server_filename_option{"-s,--server-file"};
@@ -66,7 +64,10 @@ auto main(int argc, char **argv)->int {
         }
     }
 
-    ::unlink(client_filename.c_str());
+    if (auto const result = descriptor::unlink(client_filename); result != 0) {
+        logger->error("Failed to unlink {} with result {} {}", 
+            client_filename, result, descriptor::descriptor::error_description(result));
+    }
 
     return EXIT_SUCCESS;
 }

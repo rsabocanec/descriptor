@@ -6,7 +6,6 @@
 #include <array>
 #include <span>
 
-#include <fcntl.h>
 
 auto main(int argc, char** argv)->int {
 
@@ -24,7 +23,7 @@ auto main(int argc, char** argv)->int {
 
     descriptor::file file{};
 
-    auto result = file.open(filename, O_RDONLY);
+    auto result = file.open(filename, descriptor::open_flags::read_only);
     if (result != 0) {
         logger->error("Failed to open file {} with result {} '{}'", 
             filename, result, descriptor::descriptor::error_description(result));

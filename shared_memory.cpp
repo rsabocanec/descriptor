@@ -2,7 +2,7 @@
 
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include <fcntl.h>
+
 
 int32_t descriptor::shared_memory::open(std::string_view path, int32_t flags, int32_t mode/* = 0*/) noexcept {
     descriptor_ = ::shm_open(path.data(), flags, mode);
