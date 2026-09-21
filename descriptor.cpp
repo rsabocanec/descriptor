@@ -212,4 +212,10 @@ int32_t descriptor::poll(int64_t timeout_nanoseconds, polled_state &state) const
 std::string_view descriptor::error_description(int32_t error_code) noexcept {
     return ::strerror(error_code);
 }
+
+// Helper functions
+int32_t unlink(std::string_view filename) noexcept {
+    int32_t result = ::unlink(filename.data());
+    return result == -1 ? errno : 0;
+}
 }

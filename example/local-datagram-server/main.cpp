@@ -5,8 +5,6 @@
 #include <array>
 #include <memory>
 
-#include <unistd.h>
-
 auto main(int argc, char **argv)->int {
 
     const std::string socket_filename_option{"-s,--socket-file"};
@@ -58,7 +56,10 @@ auto main(int argc, char **argv)->int {
         }
     }
 
-    ::unlink(socket_filename.c_str());
-
+    if (auto const result = descriptor::unlink(socket_filename); result != 0) {
+        logger->error("Failed to unlink {} with result {} {}", 
+            socket_filename, result, descriptor::descriptor::error_description(result));
+    }
+    
     return EXIT_SUCCESS;
 }

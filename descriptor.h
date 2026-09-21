@@ -184,5 +184,7 @@ protected:
     [[nodiscard]] int32_t poll(int64_t timeout_nanoseconds, polled_state &state) const noexcept;
 };
 
+// Helper functions
+[[nodiscard]] int32_t unlink(std::string_view filename) noexcept;
 }
 #endif //DESCRIPTOR_DESCRIPTOR_H

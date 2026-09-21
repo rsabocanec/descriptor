@@ -8,7 +8,6 @@
 #include <thread>
 #include <chrono>
 
-#include <fcntl.h>
 
 auto main(int argc, char** argv) ->int {
 
@@ -23,7 +22,7 @@ auto main(int argc, char** argv) ->int {
 
     descriptor::shared_memory shared_mem{};
 
-    if (auto const open_result = shared_mem.open(shmem_filename, O_RDWR); open_result != 0) {
+    if (auto const open_result = shared_mem.open(shmem_filename, descriptor::open_flags::read_write); open_result != 0) {
         logger->error("Failed to open shared memory {}, with error {} '{}'", 
             shmem_filename, open_result, descriptor::descriptor::error_description(open_result));
         return open_result;
