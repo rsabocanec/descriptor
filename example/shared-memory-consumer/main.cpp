@@ -16,7 +16,16 @@ auto main(int argc, char** argv) ->int {
     auto [logger, app] = descriptor::example::utility::init_app(
         argc, argv, {shmem_filename_option}, "Test shared memory consumer");
 
-    const std::string shmem_filename = app->get_option(shmem_filename_option)->as<std::string>();
+    std::string shmem_filename{};
+
+    try {
+        shmem_filename = app->get_option("--shmem-filename")->as<std::string>();
+    }
+    catch (const CLI::OptionNotFound &onf) {
+        logger->critical(onf.what());
+        fmt::print(fg(fmt::color::crimson), "{}", onf.what());
+        return EXIT_FAILURE;
+    }
 
     constexpr std::size_t shared_memory_size = 1024;
 
@@ -24,7 +33,7 @@ auto main(int argc, char** argv) ->int {
 
     if (auto const open_result = shared_mem.open(shmem_filename, descriptor::open_flags::read_write); open_result != 0) {
         logger->error("Failed to open shared memory {}, with error {} '{}'", 
-            shmem_filename, open_result, descriptor::descriptor::error_description(open_result));
+            shmem_filename, open_result, descriptor::error_description(open_result));
         return open_result;
     }
 
@@ -36,7 +45,7 @@ auto main(int argc, char** argv) ->int {
 
     if (auto const open_result = semaphore.open(semaphore_name); open_result != 0) {
         logger->error("Failed to open semaphore {}, with error {} '{}'", 
-            semaphore_name, open_result, descriptor::descriptor::error_description(open_result));
+            semaphore_name, open_result, descriptor::error_description(open_result));
         return open_result;
     }
 
@@ -44,7 +53,7 @@ auto main(int argc, char** argv) ->int {
 
     if (auto const post_result = semaphore.post(); post_result != 0) {
         logger->error("Failed to post on semaphore {}, with error {} '{}'", 
-            semaphore_name, post_result, descriptor::descriptor::error_description(post_result));
+            semaphore_name, post_result, descriptor::error_description(post_result));
         return post_result;
     }
 
@@ -57,7 +66,7 @@ auto main(int argc, char** argv) ->int {
 
         if (auto const wait_result = semaphore.wait(); wait_result != 0) {
             logger->error("Failed to wait on semaphore {}: {}", 
-                semaphore_name, descriptor::descriptor::error_description(wait_result));
+                semaphore_name, descriptor::error_description(wait_result));
             return wait_result;
         }
 
@@ -66,7 +75,7 @@ auto main(int argc, char** argv) ->int {
         auto const [read_result, bytes_read] = shared_mem.read(buffer);
         if (read_result != 0) {
             logger->error("Failed to read from shared memory {}: {}", 
-                shmem_filename, descriptor::descriptor::error_description(read_result));
+                shmem_filename, descriptor::error_description(read_result));
         }
         else {
             if (bytes_read == 0) {
@@ -78,14 +87,14 @@ auto main(int argc, char** argv) ->int {
 
                 if (auto const truncate_result = shared_mem.truncate(0); truncate_result != 0) {
                     logger->error("Failed to truncate shared memory {}: {}", 
-                        shmem_filename, descriptor::descriptor::error_description(truncate_result));
+                        shmem_filename, descriptor::error_description(truncate_result));
                 }
             }
         }
 
         if (auto const post_result = semaphore.post(); post_result != 0) {
             logger->error("Failed to post on semaphore {}: {}", 
-                semaphore_name, descriptor::descriptor::error_description(post_result));
+                semaphore_name, descriptor::error_description(post_result));
             return post_result;
         }
 

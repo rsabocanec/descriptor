@@ -15,12 +15,31 @@ auto main(int argc, char **argv)->int {
 
     descriptor::udp_socket server{};
 
-    const std::string server_address = app->get_option(server_address_option)->as<std::string>();
-    const uint16_t server_port = app->get_option(server_port_option)->as<uint16_t>();
+    std::string server_address{};
+
+    try {
+        server_address = app->get_option("--address")->as<std::string>();
+    }
+    catch (const CLI::OptionNotFound &onf) {
+        logger->critical(onf.what());
+        fmt::print(fg(fmt::color::crimson), "{}", onf.what());
+        return EXIT_FAILURE;
+    }
+
+    uint16_t server_port{};
+
+    try {
+        server_port = app->get_option("--port")->as<uint16_t>();
+    }
+    catch (const CLI::OptionNotFound &onf) {
+        logger->critical(onf.what());
+        fmt::print(fg(fmt::color::crimson), "{}", onf.what());
+        return EXIT_FAILURE;
+    }
 
     if (auto const result = server.bind(server_address, server_port); result != 0) {
         logger->error("Failed to bind to {}:{} with result {} '{}'", 
-            server_address, server_port, result, descriptor::descriptor::error_description(result));
+            server_address, server_port, result, descriptor::error_description(result));
         return result;
     }
 
@@ -38,7 +57,7 @@ auto main(int argc, char **argv)->int {
 
         if (result != 0) {
             logger->error("Failed to receive from {}:{} with error {} '{}'", 
-                receive_address, receive_port, result, descriptor::descriptor::error_description(result));
+                receive_address, receive_port, result, descriptor::error_description(result));
             break;
         }
         else {
@@ -53,7 +72,7 @@ auto main(int argc, char **argv)->int {
 
         if (result != 0) {
             logger->error("Failed to send to {}:{} with error {} '{}'", 
-                receive_address, receive_port, result, descriptor::descriptor::error_description(result));
+                receive_address, receive_port, result, descriptor::error_description(result));
             break;
         }
         }

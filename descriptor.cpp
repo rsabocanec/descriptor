@@ -24,21 +24,6 @@
 
 namespace descriptor {
 
-void report_error(std::ostream& os, int32_t error_num, std::string_view prefix,
-                                  std::source_location location) noexcept {
-    os  << prefix << "Error " << error_num
-        << '[' << ::strerror(error_num) << "]\t"
-        << "in " << location.file_name()
-        << " (" << location.function_name() << "), line "
-        << location.line() << '\n'
-        << "\nStack trace:\n" 
-#ifdef _STACKTRACE_SUPPORTED        
-        << std::stacktrace::current() << '\n'
-#endif
-        ;
-
-}
-
 void polled_state::set_state(int16_t revents) noexcept {
     has_something_to_read_ = revents & POLLIN;
     has_something_to_write_ = revents & POLLOUT;
@@ -209,11 +194,25 @@ int32_t descriptor::poll(int64_t timeout_nanoseconds, polled_state &state) const
     return ready > 0 ? 0 : ETIMEDOUT;
 }
 
-std::string_view descriptor::error_description(int32_t error_code) noexcept {
+// Utility functions
+std::string_view error_description(int32_t error_code) noexcept {
     return ::strerror(error_code);
 }
 
-// Utility functions
+void report_error(std::ostream& os, int32_t error_num, std::string_view prefix,
+                  std::source_location location) noexcept {
+    os  << prefix << "Error " << error_num
+        << '[' << ::strerror(error_num) << "]\t"
+        << "in " << location.file_name()
+        << " (" << location.function_name() << "), line "
+        << location.line() << '\n'
+        << "\nStack trace:\n" 
+#ifdef _STACKTRACE_SUPPORTED        
+        << std::stacktrace::current() << '\n'
+#endif
+        ;
+}
+
 int32_t unlink(std::string_view filename) noexcept {
     const int32_t result = ::unlink(filename.data());
     return result == -1 ? errno : 0;

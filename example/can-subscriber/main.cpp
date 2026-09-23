@@ -47,14 +47,23 @@ auto main(int argc, char **argv)->int {
     auto [logger, app] = descriptor::example::utility::init_app(
         argc, argv, {can_device_option}, "Test CAN subscriber");
 
-    const std::string can_device = app->get_option(can_device_option)->as<std::string>();
+    std::string can_device{};
+
+    try {
+        can_device = app->get_option("--can-device")->as<std::string>();
+    }
+    catch (const CLI::OptionNotFound &onf) {
+        logger->critical(onf.what());
+        fmt::print(fg(fmt::color::crimson), "{}", onf.what());
+        return EXIT_FAILURE;
+    }
 
     descriptor::can_socket subscriber{};
     g_subscriber = &subscriber;
     
     if (auto const result = subscriber.bind(can_device); result != 0) {
         logger->error("Failed to bind to {} with result {} {}", 
-            can_device, result, descriptor::descriptor::error_description(result));
+            can_device, result, descriptor::error_description(result));
         return result;
     }
 
@@ -65,7 +74,7 @@ auto main(int argc, char **argv)->int {
 
         if (result != 0) {
             logger->error("Failed to read CAN payload: ({}) {}", 
-                result, descriptor::descriptor::error_description(result));
+                result, descriptor::error_description(result));
             return result;
         }
 

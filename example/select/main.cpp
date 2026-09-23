@@ -11,7 +11,16 @@ auto main(int argc, char **argv)->int {
     auto [logger, app] = descriptor::example::utility::init_app(
         argc, argv, {input_filename}, "Test select() function");
 
-    const std::string filename{app->get_option(input_filename)->as<std::string>()};
+    std::string filename{};
+
+    try {
+        filename = app->get_option("--input")->as<std::string>();
+    }
+    catch (const CLI::OptionNotFound &onf) {
+        logger->critical(onf.what());
+        fmt::print(fg(fmt::color::crimson), "{}", onf.what());
+        return EXIT_FAILURE;
+    }
 
     descriptor::reader reader{filename};
 
@@ -33,7 +42,7 @@ auto main(int argc, char **argv)->int {
             case 0: {
                     auto const [read_error, bytes_read] = reader.read(buffer);
                     if (read_error != 0) {
-                        logger->error("Read failed; {}", descriptor::descriptor::error_description(read_error));
+                        logger->error("Read failed; {}", descriptor::error_description(read_error));
                         return EXIT_FAILURE;
                     }
                     else if (bytes_read == 0) {
@@ -50,7 +59,7 @@ auto main(int argc, char **argv)->int {
                 std::this_thread::sleep_for(1s);
                 continue;
             default:
-                logger->error("Select failed; {}", descriptor::descriptor::error_description(select_result));
+                logger->error("Select failed; {}", descriptor::error_description(select_result));
                 return EXIT_FAILURE;
         }
     }

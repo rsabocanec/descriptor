@@ -41,19 +41,26 @@ auto main(int argc, char **argv)->int {
     auto [logger, app] = descriptor::example::utility::init_app(
         argc, argv, {server_path_option}, "Test local stream server");
 
-    server_path = app->get_option(server_path_option)->as<std::string>();
+    try {
+        server_path = app->get_option("--server-path")->as<std::string>();
+    }
+    catch (const CLI::OptionNotFound &onf) {
+        logger->critical(onf.what());
+        fmt::print(fg(fmt::color::crimson), "{}", onf.what());
+        return EXIT_FAILURE;
+    }
 
     descriptor::local_stream_socket server{};
     g_server = &server;
 
     auto result = server.bind(server_path);
     if (result != 0) {
-        std::cerr << "bind failed; " << descriptor::descriptor::error_description(result) << '\n';
+        std::cerr << "bind failed; " << descriptor::error_description(result) << '\n';
     }
     else {
         result = server.listen();
         if (result != 0) {
-            std::cerr << "listen faeled: " << descriptor::descriptor::error_description(result) << '\n';
+            std::cerr << "listen faeled: " << descriptor::error_description(result) << '\n';
         }
         else {
             auto accept_result = server.accept();
@@ -73,7 +80,7 @@ auto main(int argc, char **argv)->int {
                         bytes_read = std::get<1>(read_result);
 
                         if (read_error != 0) {
-                            std::cerr << "read failed; " << descriptor::descriptor::error_description(read_error) << '\n';
+                            std::cerr << "read failed; " << descriptor::error_description(read_error) << '\n';
                         }
                         else if (bytes_read == 0) {
                             std::cout << "Connection from " << acceptor.peer() << " has been closed!\n";
@@ -86,7 +93,7 @@ auto main(int argc, char **argv)->int {
                                 acceptor.write(response.cbegin(), response.cend());
 
                             if (write_result != 0) {
-                                std::cerr << "write failed; " << descriptor::descriptor::error_description(write_result) << '\n';
+                                std::cerr << "write failed; " << descriptor::error_description(write_result) << '\n';
                             }
                             else {
                                 std::cout << "Sent '" << response << "'\n";
@@ -100,7 +107,7 @@ auto main(int argc, char **argv)->int {
                 accept_result = server.accept();
             }
 
-            std::cerr << "accept failed: " << descriptor::descriptor::error_description(accept_result.error()) << '\n';
+            std::cerr << "accept failed: " << descriptor::error_description(accept_result.error()) << '\n';
         }
     }
 

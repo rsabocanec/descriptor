@@ -15,7 +15,16 @@ auto main(int argc, char** argv)->int {
     auto [logger, app] = descriptor::example::utility::init_app(
         argc, argv, {mmap_filename_option}, "Test poll() function");
 
-    const std::string filename{app->get_option(mmap_filename_option)->as<std::string>()};
+    std::string filename{};
+
+    try {
+        filename = app->get_option("--mmap-file")->as<std::string>();
+    }
+    catch (const CLI::OptionNotFound &onf) {
+        logger->critical(onf.what());
+        fmt::print(fg(fmt::color::crimson), "{}", onf.what());
+        return EXIT_FAILURE;
+    }
 
     constexpr std::size_t new_file_size = 1024;
 
@@ -26,13 +35,13 @@ auto main(int argc, char** argv)->int {
         
         if (result != 0) {
             logger->error("Failed to open file {} with result {}", 
-                filename, descriptor::descriptor::error_description(result));
+                filename, descriptor::error_description(result));
             return result;
         }
 
         result = file.memory_map(descriptor::memory_map_access::write, new_file_size);
         if (result != 0) {
-            logger->error("Failed to memory map file {} with result {}", filename, descriptor::descriptor::error_description(result));
+            logger->error("Failed to memory map file {} with result {}", filename, descriptor::error_description(result));
             return result;
         }
 
@@ -48,7 +57,7 @@ auto main(int argc, char** argv)->int {
         std::array<char, new_file_size> buffer{};
         auto [read_result, bytes_read] = reader.read(buffer);
         if (read_result != 0) {
-            logger->error("Failed to read from file {} with result {}", filename, descriptor::descriptor::error_description(read_result));
+            logger->error("Failed to read from file {} with result {}", filename, descriptor::error_description(read_result));
             return read_result;
         }
 

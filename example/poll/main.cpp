@@ -11,7 +11,16 @@ auto main(int argc, char **argv)->int {
     auto [logger, app] = descriptor::example::utility::init_app(
         argc, argv, {input_filename}, "Test poll() function");
 
-    const std::string filename{app->get_option(input_filename)->as<std::string>()};
+    std::string filename{};
+
+    try {
+        filename = app->get_option("--input")->as<std::string>();
+    }
+    catch (const CLI::OptionNotFound &onf) {
+        logger->critical(onf.what());
+        fmt::print(fg(fmt::color::crimson), "{}", onf.what());
+        return EXIT_FAILURE;
+    }
 
     descriptor::reader reader{filename};
 
@@ -41,7 +50,7 @@ auto main(int argc, char **argv)->int {
                 else if (state.has_something_to_read()) {
                     auto const [read_error, bytes_read] = reader.read(buffer);
                     if (read_error != 0) {
-                        logger->error("Read failed; {}", descriptor::descriptor::error_description(read_error));
+                        logger->error("Read failed; {}", descriptor::error_description(read_error));
                         return EXIT_FAILURE;
                     }
                     else if (bytes_read == 0) {
@@ -62,7 +71,7 @@ auto main(int argc, char **argv)->int {
                 std::this_thread::sleep_for(1s);
                 continue;
             default:
-                logger->error("Poll failed; {}", descriptor::descriptor::error_description(poll_result));
+                logger->error("Poll failed; {}", descriptor::error_description(poll_result));
                 return EXIT_FAILURE;
         }
     }

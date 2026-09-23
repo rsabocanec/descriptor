@@ -47,14 +47,14 @@ auto main(int argc, char **argv)->int {
 
     auto result = server.bind(server_address, server_port);
     if (result != 0) {
-        logger->error("Bind failed; {} '{}'", result, descriptor::descriptor::error_description(result));
+        logger->error("Bind failed; {} '{}'", result, descriptor::error_description(result));
     }
     else {
         logger->info("Server bound to {}:{}", server_address, server_port);
 
         result = server.listen();
         if (result != 0) {
-            logger->error("Listen failed; {} '{}'", result, descriptor::descriptor::error_description(result));
+            logger->error("Listen failed; {} '{}'", result, descriptor::error_description(result));
         }
         else {
             logger->info("Server listening on {}:{}", server_address, server_port);
@@ -77,7 +77,7 @@ auto main(int argc, char **argv)->int {
                         bytes_read = std::get<1>(read_result);
 
                         if (read_error != 0) {
-                            logger->error("Receive failed; {} '{}'", read_error, descriptor::descriptor::error_description(read_error));
+                            logger->error("Receive failed; {} '{}'", read_error, descriptor::error_description(read_error));
                         }
                         else if (bytes_read == 0) {
                             logger->info("Connection from {}:{} has been closed!", acceptor.peer(), acceptor.peer_port());
@@ -92,7 +92,7 @@ auto main(int argc, char **argv)->int {
                                 acceptor.write(response.cbegin(), response.cend());
 
                             if (write_result != 0) {
-                                logger->error("Send failed; {} '{}'", write_result, descriptor::descriptor::error_description(write_result));
+                                logger->error("Send failed; {} '{}'", write_result, descriptor::error_description(write_result));
                             }
                             else {
                                 logger->info("Sent '{}'", response);
@@ -112,7 +112,7 @@ auto main(int argc, char **argv)->int {
                 accept_result = server.accept();
             }
 
-            logger->error("Accept failed; {} '{}'", accept_result.error(), descriptor::descriptor::error_description(accept_result.error()));
+            logger->error("Accept failed; {} '{}'", accept_result.error(), descriptor::error_description(accept_result.error()));
         }
     }
 
