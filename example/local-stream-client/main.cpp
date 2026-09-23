@@ -15,9 +15,20 @@ auto main(int argc, char **argv)->int {
 
     descriptor::local_stream_socket client{};
 
-    auto result = client.connect(app->get_option(server_path_option)->as<std::string>());
+    std::string server_path{};
+
+    try {
+        server_path = app->get_option("--server-path")->as<std::string>();
+    }
+    catch (const CLI::OptionNotFound &onf) {
+        logger->critical(onf.what());
+        fmt::print(fg(fmt::color::crimson), "{}", onf.what());
+        return EXIT_FAILURE;
+    }
+
+    auto result = client.connect(server_path);
     if (result != 0) {
-        std::cerr << "Connect failed; " << descriptor::descriptor::error_description(result) << '\n';
+        std::cerr << "Connect failed; " << descriptor::error_description(result) << '\n';
     }
     else {
         std::string request{};
@@ -30,7 +41,7 @@ auto main(int argc, char **argv)->int {
                 client.write(request.cbegin(), request.cend());
 
             if (write_result != 0) {
-                std::cerr << "Write failed; " << descriptor::descriptor::error_description(write_result) << '\n';
+                std::cerr << "Write failed; " << descriptor::error_description(write_result) << '\n';
             }
             else {
                 std::cout << "Sent '" << request << "'\n";
@@ -40,7 +51,7 @@ auto main(int argc, char **argv)->int {
                     client.read(response);
 
                 if (read_result != 0) {
-                    std::cerr << "Read failed; " << descriptor::descriptor::error_description(read_result) << '\n';
+                    std::cerr << "Read failed; " << descriptor::error_description(read_result) << '\n';
                 }
                 else {
                     std::cout << "Received '" << std::string_view(response.cbegin(), bytes_read) << "'\n";
@@ -50,7 +61,7 @@ auto main(int argc, char **argv)->int {
 
         result = client.disconnect();
         if (result != 0) {
-            std::cerr << "Disconnect failed; " << descriptor::descriptor::error_description(result) << '\n';
+            std::cerr << "Disconnect failed; " << descriptor::error_description(result) << '\n';
         }
     }
 

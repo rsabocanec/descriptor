@@ -39,10 +39,19 @@ auto main(int argc, char **argv)->int {
 
     descriptor::can_socket publisher{};
 
-    const std::string can_device = app->get_option(can_device_option)->as<std::string>();
+    std::string can_device{};
+
+    try {
+        can_device = app->get_option("--can-device")->as<std::string>();
+    }
+    catch (const CLI::OptionNotFound &onf) {
+        logger->critical(onf.what());
+        fmt::print(fg(fmt::color::crimson), "{}", onf.what());
+        return EXIT_FAILURE;
+    }
 
     if (auto const result = publisher.bind(can_device); result != 0) {
-        logger->error("Failed to bind to {}: {}", can_device, descriptor::descriptor::error_description(result));
+        logger->error("Failed to bind to {}: {}", can_device, descriptor::error_description(result));
         return result;
     }
 
@@ -77,7 +86,7 @@ auto main(int argc, char **argv)->int {
 
         if (result != 0) {            
             logger->error("Failed to send CAN payload: ({}) {}. Sent {} bytes", 
-                result, descriptor::descriptor::error_description(result), count);
+                result, descriptor::error_description(result), count);
             return result;
         }
 

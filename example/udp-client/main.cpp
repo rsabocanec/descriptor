@@ -13,8 +13,28 @@ auto main(int argc, char **argv)->int {
     auto [logger, app] = descriptor::example::utility::init_app(
         argc, argv, {}, "Test UDP client");
 
-    const std::string server_address = app->get_option(server_address_option)->as<std::string>();
-    const uint16_t server_port = app->get_option(server_port_option)->as<uint16_t>();
+
+    std::string server_address{};
+
+    try {
+        server_address = app->get_option("--address")->as<std::string>();
+    }
+    catch (const CLI::OptionNotFound &onf) {
+        logger->critical(onf.what());
+        fmt::print(fg(fmt::color::crimson), "{}", onf.what());
+        return EXIT_FAILURE;
+    }
+
+    uint16_t server_port{};
+
+    try {
+        server_port = app->get_option("--port")->as<uint16_t>();
+    }
+    catch (const CLI::OptionNotFound &onf) {
+        logger->critical(onf.what());
+        fmt::print(fg(fmt::color::crimson), "{}", onf.what());
+        return EXIT_FAILURE;
+    }
 
     descriptor::udp_socket client{};
 
@@ -34,7 +54,7 @@ auto main(int argc, char **argv)->int {
 
         if (result != 0) {
             logger->error("Failed to send to {}:{} with error {} '{}'", 
-                server_address, server_port, result, descriptor::descriptor::error_description(result));
+                server_address, server_port, result, descriptor::error_description(result));
             break;
         }
         }
@@ -47,7 +67,7 @@ auto main(int argc, char **argv)->int {
 
         if (result != 0) {
             logger->error("Failed to receive from {}:{} with error {} '{}'", 
-                receive_address, receive_port, result, descriptor::descriptor::error_description(result));
+                receive_address, receive_port, result, descriptor::error_description(result));
             break;
         }
         else {

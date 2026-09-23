@@ -220,6 +220,12 @@ public:
         return file_.poll(std::forward<duration<Period>>(timeout), state);
     }
 };
+
+// Utility functions
+[[nodiscard]] int32_t make_fifo(std::string_view filename, int32_t mode  = open_mode::read_by_owner 
+                                                                         | open_mode::write_by_owner
+                                                                         | open_mode::read_by_group
+                                                                         | open_mode::read_by_others) noexcept;
 }
 
 #endif // DESCRIPTOR_FILE_H

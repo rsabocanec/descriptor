@@ -11,15 +11,24 @@ auto main(int argc, char **argv)->int {
 
     auto [logger, app] = descriptor::example::utility::init_app(
         argc, argv, {socket_filename_option}, "Test poll() function");
+        
+    std::string socket_filename{};
 
-    const std::string socket_filename{app->get_option(socket_filename_option)->as<std::string>()};
+    try {
+        socket_filename = app->get_option("--socket-file")->as<std::string>();
+    }
+    catch (const CLI::OptionNotFound &onf) {
+        logger->critical(onf.what());
+        fmt::print(fg(fmt::color::crimson), "{}", onf.what());
+        return EXIT_FAILURE;
+    }
 
     std::unique_ptr<descriptor::datagram_socket> server =
         std::make_unique<descriptor::local_datagram_socket>();
 
     if (auto const result = server->bind(socket_filename); result != 0) {
         logger->error("Failed to bind to {} with result {} {}", 
-            socket_filename, result, descriptor::descriptor::error_description(result));
+            socket_filename, result, descriptor::error_description(result));
         return result;
     }
 
@@ -36,7 +45,7 @@ auto main(int argc, char **argv)->int {
 
         if (result != 0) {
             logger->error("Failed to read from {} with result {} {}", 
-                receive_address, result, descriptor::descriptor::error_description(result));
+                receive_address, result, descriptor::error_description(result));
             break;
         }
         else {
@@ -50,7 +59,7 @@ auto main(int argc, char **argv)->int {
 
         if (result != 0) {
             logger->error("Failed to write to {} with result {} {}", 
-                receive_address, result, descriptor::descriptor::error_description(result));
+                receive_address, result, descriptor::error_description(result));
             break;
         }
         }
@@ -58,7 +67,7 @@ auto main(int argc, char **argv)->int {
 
     if (auto const result = descriptor::unlink(socket_filename); result != 0) {
         logger->error("Failed to unlink {} with result {} {}", 
-            socket_filename, result, descriptor::descriptor::error_description(result));
+            socket_filename, result, descriptor::error_description(result));
     }
     
     return EXIT_SUCCESS;

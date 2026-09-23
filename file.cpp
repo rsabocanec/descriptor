@@ -172,3 +172,9 @@ int32_t descriptor::file::memory_unlock() noexcept {
 
     return 0;
 }
+
+// Utility functions
+int32_t descriptor::make_fifo(std::string_view filename, int32_t mode) noexcept {
+    const int32_t result = ::mkfifo(filename.data(), mode);
+    return result == -1 ? errno : 0;
+}

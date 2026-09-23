@@ -37,12 +37,6 @@ namespace descriptor {
 template <typename Period>
 using duration = std::chrono::duration<int64_t, Period>;
 
-void report_error(
-    std::ostream& os,
-    int32_t error_num,
-    std::string_view prefix = {},
-    std::source_location location = std::source_location::current()) noexcept;
-
 struct polled_state {
     bool has_something_to_read_{};
     bool has_something_to_write_{};
@@ -177,14 +171,17 @@ public:
         return poll(std::chrono::duration_cast<std::chrono::nanoseconds>(timeout).count(), state);
     }
 
-    [[nodiscard]] static std::string_view error_description(int32_t error_code) noexcept;
-
 protected:
     [[nodiscard]] int32_t select(int64_t timeout_nanoseconds) const noexcept;
     [[nodiscard]] int32_t poll(int64_t timeout_nanoseconds, polled_state &state) const noexcept;
 };
 
-// Helper functions
+// Utility functions
+[[nodiscard]] std::string_view error_description(int32_t error_code) noexcept;
+
+void report_error(std::ostream& os, int32_t error_num, std::string_view prefix = {},
+    std::source_location location = std::source_location::current()) noexcept;
+
 [[nodiscard]] int32_t unlink(std::string_view filename) noexcept;
 }
 #endif //DESCRIPTOR_DESCRIPTOR_H

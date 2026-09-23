@@ -22,7 +22,7 @@ auto main(int argc, char** argv) ->int {
 
     if (auto const open_result = shared_mem.open(shmem_filename, descriptor::open_flags::write_only | descriptor::open_flags::create); open_result != 0) {
         logger->error("Failed to open shared memory {}: {}", 
-            shmem_filename, descriptor::descriptor::error_description(open_result));
+            shmem_filename, descriptor::error_description(open_result));
         return open_result;
     }
 
@@ -34,7 +34,7 @@ auto main(int argc, char** argv) ->int {
 
     if (auto const open_result = semaphore.open(semaphore_name); open_result != 0) {
         logger->error("Failed to open semaphore {}, with error {} '{}'", 
-            semaphore_name, open_result, descriptor::descriptor::error_description(open_result));
+            semaphore_name, open_result, descriptor::error_description(open_result));
         return open_result;
     }
 
@@ -44,7 +44,7 @@ auto main(int argc, char** argv) ->int {
 
     if (auto const wait_result = semaphore.wait(); wait_result != 0) {
         logger->error("Failed to wait on semaphore {}, with error {} '{}'", 
-            semaphore_name, wait_result, descriptor::descriptor::error_description(wait_result));
+            semaphore_name, wait_result, descriptor::error_description(wait_result));
         return wait_result;
     }
 
@@ -61,7 +61,7 @@ auto main(int argc, char** argv) ->int {
         
         if (write_result != 0) {
             logger->error("Failed to write to shared memory {}, with error {} '{}'", 
-                shmem_filename, write_result, descriptor::descriptor::error_description(write_result));
+                shmem_filename, write_result, descriptor::error_description(write_result));
         }
         else {
             fmt::print(fg(fmt::color::orange), "{}\n", hello_message);
@@ -70,7 +70,7 @@ auto main(int argc, char** argv) ->int {
 
         if (auto const post_result = semaphore.post(); post_result != 0) {
             logger->error("Failed to post on semaphore {}, with error {} '{}'", 
-                semaphore_name, post_result, descriptor::descriptor::error_description(post_result));
+                semaphore_name, post_result, descriptor::error_description(post_result));
             return post_result;
         }
 
@@ -82,7 +82,7 @@ auto main(int argc, char** argv) ->int {
 
         if (auto const wait_result = semaphore.wait(); wait_result != 0) {
             logger->error("Failed to wait on semaphore {}, with error {} '{}'", 
-                semaphore_name, wait_result, descriptor::descriptor::error_description(wait_result));
+                semaphore_name, wait_result, descriptor::error_description(wait_result));
             return wait_result;
         }
 
