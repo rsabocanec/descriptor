@@ -19,7 +19,8 @@ add_library(descriptor SHARED descriptor.cpp
         file.cpp
         shared_memory.cpp
         timer.cpp
-        semaphores.cpp)
+        semaphores.cpp
+        message_queue.cpp)
 
 add_library(descriptor-static STATIC descriptor.cpp
         socket.cpp
@@ -35,7 +36,8 @@ add_library(descriptor-static STATIC descriptor.cpp
         file.cpp
         shared_memory.cpp
         timer.cpp
-        semaphores.cpp)
+        semaphores.cpp
+        message_queue.cpp)
 
 if(SUPPORT_STACKTRACE)
     target_compile_definitions(descriptor PUBLIC _STACKTRACE_SUPPORTED)

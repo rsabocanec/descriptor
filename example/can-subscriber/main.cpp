@@ -54,7 +54,7 @@ auto main(int argc, char **argv)->int {
     }
     catch (const CLI::OptionNotFound &onf) {
         logger->critical(onf.what());
-        fmt::print(fg(fmt::color::crimson), "{}", onf.what());
+        fmt::print(fg(fmt::color::crimson), "{}\n", onf.what());
         return EXIT_FAILURE;
     }
 

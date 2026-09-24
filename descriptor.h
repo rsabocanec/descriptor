@@ -137,7 +137,7 @@ public:
         return read(std::as_writable_bytes(std::span(arr)));
     }
 
-    [[nodiscard]] std::tuple<int32_t, int32_t> read(std::span<std::byte> buffer) const noexcept;
+    [[nodiscard]] virtual std::tuple<int32_t, int32_t> read(std::span<std::byte> buffer) const noexcept;
 
     template<std::random_access_iterator It>
     [[nodiscard]] std::tuple<int32_t, int32_t> write(It first, std::size_t count) const noexcept {
@@ -154,7 +154,7 @@ public:
         return write(std::as_bytes(std::span(arr)));
     }
 
-    [[nodiscard]] std::tuple<int32_t, int32_t> write(std::span<const std::byte> buffer) const noexcept;
+    [[nodiscard]] virtual std::tuple<int32_t, int32_t> write(std::span<const std::byte> buffer) const noexcept;
 
     [[nodiscard]] virtual std::tuple<int32_t, int32_t> splice(const descriptor& source, std::size_t count, 
                                                               std::optional<int32_t> offset_in = std::nullopt,
