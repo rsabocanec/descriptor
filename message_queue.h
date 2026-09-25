@@ -23,6 +23,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 namespace descriptor {
 class message_queue : public basic_file {
+    std::string name_;
     
 public:
     message_queue() = default;
@@ -32,7 +33,7 @@ public:
     message_queue& operator=(const message_queue&) = delete;
     message_queue& operator=(message_queue&&) = default;
 
-    [[nodiscard]] int32_t open( std::string_view path, 
+    [[nodiscard]] int32_t open( std::string_view name, 
                                 int32_t flags = open_flags::read_write 
                                               | open_flags::create, 
                                 int32_t mode  = open_mode::read_by_owner 
