@@ -52,3 +52,6 @@ add_subdirectory(poll)
 add_subdirectory(select)
 
 add_subdirectory(fifo)
+
+add_subdirectory(message-queue-publisher)
+add_subdirectory(message-queue-subscriber)
