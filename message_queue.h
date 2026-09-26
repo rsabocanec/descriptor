@@ -20,6 +20,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "file.h"
 
 #include <functional>
+#include <optional>
 
 namespace descriptor {
 class message_queue : public basic_file {
@@ -50,7 +51,6 @@ public:
                                               | open_mode::read_by_others) noexcept final override;
 
     [[nodiscard]] int32_t close() noexcept final override;
-
 
     [[nodiscard]] std::tuple<int32_t, int32_t> read(std::span<std::byte> buffer) const noexcept final override;
 
@@ -101,7 +101,7 @@ public:
     int32_t notify(std::function<void(void *ptr)> handler) const noexcept; 
 
     int32_t get_attributes(const attributes &attr) const noexcept;
-    int32_t set_attributes(const attributes &attr, attributes &old_attr) const noexcept;
+    int32_t set_attributes(const attributes &attr, std::optional<attributes> old_attr = std::nullopt) const noexcept;
 protected:
     [[nodiscard]] std::tuple<int32_t, int32_t> timed_read(std::span<std::byte> buffer, int64_t timeout_nanoseconds) const noexcept;
     [[nodiscard]] std::tuple<int32_t, int32_t> timed_write(std::span<const std::byte> buffer, int64_t timeout_nanoseconds) const noexcept;

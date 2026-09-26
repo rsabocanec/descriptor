@@ -221,7 +221,7 @@ int32_t message_queue::get_attributes(const attributes &attr) const noexcept {
     return 0;
 }
 
-int32_t message_queue::set_attributes(const attributes &attr, attributes &old_attr) const noexcept {
+int32_t message_queue::set_attributes(const attributes &attr, std::optional<attributes> old_attr) const noexcept {
 
     if (descriptor_ == -1) {
         return EINVAL;
@@ -240,11 +240,12 @@ int32_t message_queue::set_attributes(const attributes &attr, attributes &old_at
         return errno;
     }
 
-    old_attr.flags_ = old_mqa.mq_flags;
-    old_attr.max_msg_count_ = old_mqa.mq_maxmsg;
-    old_attr.max_msg_size_ = old_mqa.mq_msgsize;
-    old_attr.cur_msg_count_ = old_mqa.mq_curmsgs;
-
+    if (old_attr) {
+        old_attr->flags_ = old_mqa.mq_flags;
+        old_attr->max_msg_count_ = old_mqa.mq_maxmsg;
+        old_attr->max_msg_size_ = old_mqa.mq_msgsize;
+        old_attr->cur_msg_count_ = old_mqa.mq_curmsgs;
+    }
     return 0;
 }
 }
