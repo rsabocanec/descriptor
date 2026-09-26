@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <sys/stat.h> 
 #include <mqueue.h>
+#include <signal.h>
 #include <limits.h>
 
 namespace descriptor {
@@ -141,14 +142,62 @@ std::tuple<int32_t, int32_t> message_queue::timed_write(std::span<const std::byt
 }
 
 int32_t message_queue::notify() const noexcept {
-    return -1;
+    if (descriptor_ == -1) {
+        return EINVAL;
+    }
+
+    const struct sigevent se {
+        .sigev_notify = SIGEV_NONE
+    };
+
+    if (::mq_notify(descriptor_, &se) == -1) {
+        return errno;
+    }
+
+    return 0;
 }
 
 int32_t message_queue::notify(int32_t signal_number) const noexcept {
-    return -1;
+    if (descriptor_ == -1) {
+        return EINVAL;
+    }
+
+    const struct sigevent se {
+        .sigev_signo = signal_number,
+        .sigev_notify = SIGEV_SIGNAL
+    };
+
+    if (::mq_notify(descriptor_, &se) == -1) {
+        return errno;
+    }
+
+    return 0;
 }
 
 int32_t message_queue::notify(std::function<void(void *ptr)> handler) const noexcept {
-    return -1;
+    if (descriptor_ == -1) {
+        return EINVAL;
+    }
+
+    auto mqdesc = descriptor_.load();
+
+    const union sigval sv {
+        .sival_ptr = static_cast<void*>(&mqdesc)
+    };
+
+    static std::function<void(void *ptr)> sig_handler;
+    sig_handler = std::move(handler);
+
+    struct sigevent se {};
+    se.sigev_value = sv;
+    se.sigev_notify = SIGEV_THREAD;
+    se.sigev_notify_function = [](union sigval svt) { sig_handler(svt.sival_ptr); };
+    se.sigev_notify_attributes = nullptr;
+
+    if (::mq_notify(descriptor_, &se) == -1) {
+        return errno;
+    }
+
+    return 0;
 }
 }
