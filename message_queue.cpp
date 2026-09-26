@@ -200,4 +200,51 @@ int32_t message_queue::notify(std::function<void(void *ptr)> handler) const noex
 
     return 0;
 }
+
+
+int32_t message_queue::get_attributes(const attributes &attr) const noexcept {
+    if (descriptor_ == -1) {
+        return EINVAL;
+    }
+
+    mq_attr mqa {
+        .mq_flags = attr.flags_,
+        .mq_maxmsg = attr.max_msg_count_,
+        .mq_msgsize = attr.max_msg_size_,
+        .mq_curmsgs = attr.cur_msg_count_
+    };
+
+    if (::mq_getattr(descriptor_, &mqa) == -1) {
+        return errno;
+    }
+
+    return 0;
+}
+
+int32_t message_queue::set_attributes(const attributes &attr, attributes &old_attr) const noexcept {
+
+    if (descriptor_ == -1) {
+        return EINVAL;
+    }
+
+    mq_attr mqa {
+        .mq_flags = attr.flags_,
+        .mq_maxmsg = attr.max_msg_count_,
+        .mq_msgsize = attr.max_msg_size_,
+        .mq_curmsgs = attr.cur_msg_count_
+    };
+
+    mq_attr old_mqa {};
+
+    if (::mq_setattr(descriptor_, &mqa, &old_mqa) == -1) {
+        return errno;
+    }
+
+    old_attr.flags_ = old_mqa.mq_flags;
+    old_attr.max_msg_count_ = old_mqa.mq_maxmsg;
+    old_attr.max_msg_size_ = old_mqa.mq_msgsize;
+    old_attr.cur_msg_count_ = old_mqa.mq_curmsgs;
+
+    return 0;
+}
 }

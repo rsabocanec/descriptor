@@ -26,7 +26,15 @@ class message_queue : public basic_file {
     std::string name_;
     
 public:
+    struct attributes {
+        int32_t flags_;         // Flags: 0 or O_NONBLOCK
+        int32_t max_msg_count_; // Maximum number of messages on queue
+        int32_t max_msg_size_;  // Maximum message size (bytes)
+        int32_t cur_msg_count_; // Number of messages currently in queue
+    };
+
     message_queue() = default;
+    explicit message_queue(int32_t desc) noexcept { descriptor_ = desc;}
     message_queue(const message_queue&) = delete;
     message_queue(message_queue&&) = default;
 
@@ -92,6 +100,8 @@ public:
     int32_t notify(int32_t signal_number) const noexcept;
     int32_t notify(std::function<void(void *ptr)> handler) const noexcept; 
 
+    int32_t get_attributes(const attributes &attr) const noexcept;
+    int32_t set_attributes(const attributes &attr, attributes &old_attr) const noexcept;
 protected:
     [[nodiscard]] std::tuple<int32_t, int32_t> timed_read(std::span<std::byte> buffer, int64_t timeout_nanoseconds) const noexcept;
     [[nodiscard]] std::tuple<int32_t, int32_t> timed_write(std::span<const std::byte> buffer, int64_t timeout_nanoseconds) const noexcept;
