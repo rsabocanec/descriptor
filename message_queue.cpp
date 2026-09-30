@@ -28,8 +28,15 @@ int32_t message_queue::open( std::string_view name, int32_t flags, int32_t mode)
     if (name_.length() > NAME_MAX) {
         name_ = name_.substr(0, NAME_MAX);
     }
-
-    descriptor_ = ::mq_open(name_.c_str(), flags, mode);
+#if 0
+    struct mq_attr attr {
+        .mq_flags = 0,
+        .mq_maxmsg = 16,
+        .mq_msgsize = 4096,
+        .mq_curmsgs = 0
+    };
+#endif
+    descriptor_ = ::mq_open(name_.c_str(), flags, mode, nullptr);
 
     if (descriptor_.load() == -1) {
         auto const result = errno;
@@ -174,24 +181,24 @@ int32_t message_queue::notify(int32_t signal_number) const noexcept {
     return 0;
 }
 
-int32_t message_queue::notify(std::function<void(void *ptr)> handler) const noexcept {
+int32_t message_queue::notify(std::function<void(std::unique_ptr<int32_t> ptr)> handler) const noexcept {
     if (descriptor_ == -1) {
         return EINVAL;
     }
 
-    auto mqdesc = descriptor_.load();
-
     const union sigval sv {
-        .sival_ptr = static_cast<void*>(&mqdesc)
+        .sival_ptr = static_cast<int32_t*>(new int32_t(descriptor_.load()))
     };
 
-    static std::function<void(void *ptr)> sig_handler;
+    static std::function<void(std::unique_ptr<int32_t> ptr)> sig_handler;
     sig_handler = std::move(handler);
 
     struct sigevent se {};
     se.sigev_value = sv;
     se.sigev_notify = SIGEV_THREAD;
-    se.sigev_notify_function = [](union sigval svt) { sig_handler(svt.sival_ptr); };
+    se.sigev_notify_function = [](union sigval svt) {
+        sig_handler(std::unique_ptr<int32_t>(static_cast<int32_t*>(svt.sival_ptr)));
+    };
     se.sigev_notify_attributes = nullptr;
 
     if (::mq_notify(descriptor_, &se) == -1) {
@@ -202,21 +209,21 @@ int32_t message_queue::notify(std::function<void(void *ptr)> handler) const noex
 }
 
 
-int32_t message_queue::get_attributes(const attributes &attr) const noexcept {
+int32_t message_queue::get_attributes(attributes &attr) const noexcept {
     if (descriptor_ == -1) {
         return EINVAL;
     }
 
-    mq_attr mqa {
-        .mq_flags = attr.flags_,
-        .mq_maxmsg = attr.max_msg_count_,
-        .mq_msgsize = attr.max_msg_size_,
-        .mq_curmsgs = attr.cur_msg_count_
-    };
+    mq_attr mqa {};
 
     if (::mq_getattr(descriptor_, &mqa) == -1) {
         return errno;
     }
+
+    attr.flags_ = mqa.mq_flags;
+    attr.max_msg_count_ = mqa.mq_maxmsg;
+    attr.max_msg_size_ = mqa.mq_msgsize;
+    attr.cur_msg_count_ = mqa.mq_curmsgs;
 
     return 0;
 }

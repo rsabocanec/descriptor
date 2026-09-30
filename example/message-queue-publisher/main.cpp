@@ -51,7 +51,8 @@ auto main(int argc, char **argv)->int {
     }
 
     if (auto const result = publisher->open(message_queue_name); result != 0) {
-        logger->error("Failed to bind to {}: {}", message_queue_name, descriptor::error_description(result));
+        logger->error("Failed to open message queue {} with result {} {}", 
+            message_queue_name, result, descriptor::error_description(result));
         return result;
     }
 
@@ -71,13 +72,20 @@ auto main(int argc, char **argv)->int {
     std::uniform_int_distribution<uint8_t> mq_distrib(0, 255);
 
     while (!stop_flag.load()) {
-        const std::size_t len = std::clamp( static_cast<std::size_t>(mq_distrib(gen)), 
-                                            static_cast<std::size_t>(0ull), 
-                                            static_cast<std::size_t>(attr.max_msg_size_));
+        const std::size_t len = static_cast<std::size_t>(mq_distrib(gen));
 
         for (std::size_t i = 0; i < len; ++i) {
             buffer.at(i) = mq_distrib(gen);
         }
+
+        logger->info("Sending {} bytes to the queue", len);
+        fmt::println("Sending {} bytes to the queue", len);
+
+        for (auto i = 0; i < len; ++i) {
+            fmt::print("0x{:02x} ", static_cast<uint16_t>(buffer[i]));
+        }
+
+        fmt::println("");
 
         auto const [result, count] =
             publisher->write(buffer.cbegin(), len);
@@ -87,10 +95,21 @@ auto main(int argc, char **argv)->int {
                 result, descriptor::error_description(result), count);
             return result;
         }
+        else {
+            logger->info("Sent {} bytes", count);
+            fmt::println("Sent {} bytes", count);
+        }
 
         if (count != len) {
             logger->error("Failed to send data of length {} to message queue, sent {} instead", 
-                len, count - 8);
+                len, count);
+        }
+        else {
+            for (auto i = 0; i < count; ++i) {
+                fmt::print("0x{:02x} ", static_cast<uint16_t>(buffer[i]));
+            }
+
+            fmt::println("");
         }
 
         std::this_thread::sleep_for(1s);

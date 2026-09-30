@@ -33,29 +33,54 @@ void signal_handler(int signal) {
 }
 
 namespace {
-    void incoming_handler(void *ptr) {
-        assert(ptr);
+    void incoming_handler(std::unique_ptr<int32_t> mq_desc) {
+        assert(mq_desc);
 
-        int32_t mq_desc = *(static_cast<int32_t*>(ptr));
-        descriptor::message_queue mq(mq_desc);
+        fmt::println("Handling notification from descriptor {}", *mq_desc);
+
+        descriptor::message_queue mq(*mq_desc);
 
         descriptor::message_queue::attributes attr{};
 
-        if (auto const result = mq.get_attributes(attr); result != 0) {
+        if (auto const attr_result = mq.get_attributes(attr); attr_result != 0) {
             stop_flag = true;
+            fmt::print(fg(  fmt::color::crimson), "Failed to get attributes, with error {} {}", 
+                            attr_result, descriptor::error_description(attr_result));
         }
+        else {
+            auto receive_buffer = std::make_unique<uint8_t[]>(attr.max_msg_size_);
+            
+            auto [result, count] = mq.read(std::as_writable_bytes(std::span(receive_buffer.get(), attr.max_msg_size_)));
 
-        auto receive_buffer = std::make_unique<uint8_t[]>(attr.max_msg_size_);
-        
-        auto [result, count] = mq.read(std::as_writable_bytes(std::span(receive_buffer.get(), attr.max_msg_size_)));
+            fmt::println("Received {} bytes:", count);
 
-        if (result == 0) {
-            for (auto i = 0; i < count; ++i) {
-                fmt::print("0x{:02x} ", static_cast<uint16_t>(receive_buffer[i]));
+            if (result == 0) {
+                for (auto i = 0; i < count; ++i) {
+                    fmt::print("0x{:02x} ", static_cast<uint16_t>(receive_buffer[i]));
+                }
+
+                fmt::println("");
+
+                if (auto const notify_result = mq.notify(incoming_handler); notify_result != 0) {
+                    fmt::print( fg(fmt::color::crimson), "Failed to notify message queue {} with result {} {}\n",
+                                *mq_desc, notify_result, descriptor::error_description(notify_result));
+                    stop_flag = true;
+                }
+                else {
+                    fmt::println("Successfully set notification handler!");
+                }
             }
+            else {
+                fmt::print( fg(fmt::color::crimson), "Failed to read from the message queue, with error {} {}\n", 
+                            result, descriptor::error_description(result));
 
-            fmt::println("");
+                stop_flag = true;
+            }
         }
+
+        mq.release();
+        
+        fmt::println("Exiting notification handler");
     }
 }
 
@@ -65,7 +90,7 @@ auto main(int argc, char **argv)->int {
     std::signal(SIGTERM, signal_handler);
     std::signal(SIGINT, signal_handler);
 
-    const std::string message_queue_option{"-c,--message_queue"};
+    const std::string message_queue_option{"-m,--message_queue"};
 
     auto [logger, app] = descriptor::example::utility::init_app(
         argc, argv, {message_queue_option}, "Test CAN subscriber");
@@ -73,7 +98,7 @@ auto main(int argc, char **argv)->int {
     std::string message_queue_name{};
 
     try {
-        message_queue_name = app->get_option("--can-device")->as<std::string>();
+        message_queue_name = app->get_option("--message_queue")->as<std::string>();
     }
     catch (const CLI::OptionNotFound &onf) {
         logger->critical(onf.what());

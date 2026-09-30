@@ -98,9 +98,14 @@ public:
 
     int32_t notify() const noexcept;
     int32_t notify(int32_t signal_number) const noexcept;
-    int32_t notify(std::function<void(void *ptr)> handler) const noexcept; 
+    int32_t notify(std::function<void(std::unique_ptr<int32_t> ptr)> handler) const noexcept; 
 
-    int32_t get_attributes(const attributes &attr) const noexcept;
+    void release() noexcept {
+        // Avoid closing the queue
+        descriptor_ = -1;
+    }
+
+    int32_t get_attributes(attributes &attr) const noexcept;
     int32_t set_attributes(const attributes &attr, std::optional<attributes> old_attr = std::nullopt) const noexcept;
 protected:
     [[nodiscard]] std::tuple<int32_t, int32_t> timed_read(std::span<std::byte> buffer, int64_t timeout_nanoseconds) const noexcept;
