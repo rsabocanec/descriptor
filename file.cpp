@@ -13,6 +13,7 @@ static_assert(O_CREAT == descriptor::open_flags::create, "O_CREAT does not match
 static_assert(O_EXCL == descriptor::open_flags::exclusive, "O_EXCL does not match descriptor::open_flags::exclusive");
 static_assert(O_TRUNC == descriptor::open_flags::truncate, "O_TRUC does not match descriptor::open_flags::truncate");
 static_assert(O_APPEND == descriptor::open_flags::append, "O_APPEND does not match descriptor::open_flags::append");
+static_assert(O_NONBLOCK == descriptor::open_flags::nonblocking, "O_NONBLOCK does not match descriptor::open_flags::nonblocking");
 
 
 static_assert(descriptor::open_mode::read_by_owner == S_IRUSR, "S_IRUSR does not match descriptor::open_mode::read_by_owner");
@@ -31,7 +32,7 @@ static_assert(descriptor::open_mode::exec_by_others == S_IXOTH, "S_IXOTH does no
 static_assert(descriptor::open_mode::all_by_others == S_IRWXO, "S_IRWXO does not match descriptor::open_mode::all_by_others");
 
 
-int32_t descriptor::file::open(std::string_view path, int32_t flags, int32_t mode/* = 0*/) noexcept {
+int32_t descriptor::basic_file::open(std::string_view path, int32_t flags, int32_t mode/* = 0*/) noexcept {
     descriptor_ = ::open(path.data(), flags, mode);
 
     if (descriptor_.load() == -1) {

@@ -1,0 +1,260 @@
+#include "message_queue.h"
+
+#include <fcntl.h>
+#include <sys/stat.h> 
+#include <mqueue.h>
+#include <signal.h>
+#include <limits.h>
+
+namespace descriptor {
+int32_t message_queue::open( std::string_view name, int32_t flags, int32_t mode) noexcept {
+    if (descriptor_.load() != -1) {
+        if (name == name_) {
+            return 0; // Already opened
+        }
+        else if (auto const result = close(); result != 0) {
+            return result;
+        }
+    }
+
+    if (!name.starts_with('/')) {
+        name_ = "/";
+        name_ += name;
+    }
+    else {
+        name_ = name;
+    }
+
+    if (name_.length() > NAME_MAX) {
+        name_ = name_.substr(0, NAME_MAX);
+    }
+#if 0
+    struct mq_attr attr {
+        .mq_flags = 0,
+        .mq_maxmsg = 16,
+        .mq_msgsize = 4096,
+        .mq_curmsgs = 0
+    };
+#endif
+    descriptor_ = ::mq_open(name_.c_str(), flags, mode, nullptr);
+
+    if (descriptor_.load() == -1) {
+        auto const result = errno;
+        name_.clear();
+        return result;
+    }
+
+    return 0;
+}
+
+int32_t message_queue::close() noexcept {
+    if (descriptor_ != -1) {
+        if (::mq_close(descriptor_) == -1) {
+            return errno;
+        }
+    }
+
+    if (!name_.empty()) {
+        if (::mq_unlink(name_.c_str()) == -1) {
+            return errno;
+        }
+    }
+
+    return 0;
+}
+
+std::tuple<int32_t, int32_t> message_queue::read(std::span<std::byte> buffer) const noexcept {
+
+    std::tuple<int32_t, int32_t> result {EINVAL, -1};
+
+    if (descriptor_.load() != -1) {
+        [[maybe_unused]] unsigned int priority{};
+        std::get<1>(result) =
+            ::mq_receive(descriptor_.load(),
+                    static_cast<char*>(static_cast<void*>(buffer.data())),
+                    static_cast<std::size_t>(buffer.size()),
+                    &priority);
+
+        std::get<0>(result) = std::get<1>(result) == -1 ? errno : 0;
+    }
+
+    return result;
+}
+
+std::tuple<int32_t, int32_t> message_queue::timed_read(std::span<std::byte> buffer, int64_t timeout_nanoseconds) const noexcept {
+
+    std::tuple<int32_t, int32_t> result {EINVAL, -1};
+
+    if (descriptor_.load() != -1) {
+        [[maybe_unused]] unsigned int priority{};
+
+        struct timespec tm{};
+        ::clock_gettime(CLOCK_REALTIME, &tm);
+        tm.tv_sec += timeout_nanoseconds / 1'000'000'000;
+        tm.tv_nsec += timeout_nanoseconds % 1'000'000'000;
+    
+        std::get<1>(result) =
+            ::mq_timedreceive(descriptor_.load(),
+                    static_cast<char*>(static_cast<void*>(buffer.data())),
+                    static_cast<std::size_t>(buffer.size()),
+                    &priority, &tm);
+
+        std::get<0>(result) = std::get<1>(result) == -1 ? errno : 0;
+    }
+
+    return result;
+}
+
+std::tuple<int32_t, int32_t> message_queue::write(std::span<const std::byte> buffer) const noexcept {
+
+    std::tuple<int32_t, int32_t> result {EINVAL, -1};
+
+    if (descriptor_.load() != -1) {
+        [[maybe_unused]] const unsigned int priority{};
+        
+        auto const send_result =
+            ::mq_send(descriptor_.load(),
+                      static_cast<const char*>(static_cast<const void*>(buffer.data())),
+                      static_cast<std::size_t>(buffer.size()),
+                      priority);
+
+        std::get<0>(result) = send_result == -1 ? errno : 0;
+        std::get<1>(result) = send_result == -1 ? -1 : static_cast<int32_t>(buffer.size());
+    }
+
+    return result;
+}
+
+std::tuple<int32_t, int32_t> message_queue::timed_write(std::span<const std::byte> buffer, int64_t timeout_nanoseconds) const noexcept {
+
+    std::tuple<int32_t, int32_t> result {EINVAL, -1};
+
+    if (descriptor_.load() != -1) {
+        [[maybe_unused]] const unsigned int priority{};
+
+        struct timespec tm{};
+        ::clock_gettime(CLOCK_REALTIME, &tm);
+        tm.tv_sec += timeout_nanoseconds / 1'000'000'000;
+        tm.tv_nsec += timeout_nanoseconds % 1'000'000'000;
+
+        auto const send_result =
+            ::mq_timedsend(descriptor_.load(),
+                           static_cast<const char*>(static_cast<const void*>(buffer.data())),
+                           static_cast<std::size_t>(buffer.size()),
+                           priority, &tm);
+
+        std::get<0>(result) = send_result == -1 ? errno : 0;
+        std::get<1>(result) = send_result == -1 ? -1 : static_cast<int32_t>(buffer.size());
+    }
+
+    return result;
+}
+
+int32_t message_queue::notify() const noexcept {
+    if (descriptor_ == -1) {
+        return EINVAL;
+    }
+
+    const struct sigevent se {
+        .sigev_notify = SIGEV_NONE
+    };
+
+    if (::mq_notify(descriptor_, &se) == -1) {
+        return errno;
+    }
+
+    return 0;
+}
+
+int32_t message_queue::notify(int32_t signal_number) const noexcept {
+    if (descriptor_ == -1) {
+        return EINVAL;
+    }
+
+    const struct sigevent se {
+        .sigev_signo = signal_number,
+        .sigev_notify = SIGEV_SIGNAL
+    };
+
+    if (::mq_notify(descriptor_, &se) == -1) {
+        return errno;
+    }
+
+    return 0;
+}
+
+int32_t message_queue::notify(std::function<void(std::unique_ptr<int32_t> ptr)> handler) const noexcept {
+    if (descriptor_ == -1) {
+        return EINVAL;
+    }
+
+    const union sigval sv {
+        .sival_ptr = static_cast<int32_t*>(new int32_t(descriptor_.load()))
+    };
+
+    static std::function<void(std::unique_ptr<int32_t> ptr)> sig_handler;
+    sig_handler = std::move(handler);
+
+    struct sigevent se {};
+    se.sigev_value = sv;
+    se.sigev_notify = SIGEV_THREAD;
+    se.sigev_notify_function = [](union sigval svt) {
+        sig_handler(std::unique_ptr<int32_t>(static_cast<int32_t*>(svt.sival_ptr)));
+    };
+    se.sigev_notify_attributes = nullptr;
+
+    if (::mq_notify(descriptor_, &se) == -1) {
+        return errno;
+    }
+
+    return 0;
+}
+
+
+int32_t message_queue::get_attributes(attributes &attr) const noexcept {
+    if (descriptor_ == -1) {
+        return EINVAL;
+    }
+
+    mq_attr mqa {};
+
+    if (::mq_getattr(descriptor_, &mqa) == -1) {
+        return errno;
+    }
+
+    attr.flags_ = mqa.mq_flags;
+    attr.max_msg_count_ = mqa.mq_maxmsg;
+    attr.max_msg_size_ = mqa.mq_msgsize;
+    attr.current_msg_count_ = mqa.mq_curmsgs;
+
+    return 0;
+}
+
+int32_t message_queue::set_attributes(const attributes &attr, std::optional<attributes> old_attr) const noexcept {
+
+    if (descriptor_ == -1) {
+        return EINVAL;
+    }
+
+    mq_attr mqa {
+        .mq_flags = attr.flags_,
+        .mq_maxmsg = attr.max_msg_count_,
+        .mq_msgsize = attr.max_msg_size_,
+        .mq_curmsgs = attr.current_msg_count_
+    };
+
+    mq_attr old_mqa {};
+
+    if (::mq_setattr(descriptor_, &mqa, &old_mqa) == -1) {
+        return errno;
+    }
+
+    if (old_attr) {
+        old_attr->flags_ = old_mqa.mq_flags;
+        old_attr->max_msg_count_ = old_mqa.mq_maxmsg;
+        old_attr->max_msg_size_ = old_mqa.mq_msgsize;
+        old_attr->current_msg_count_ = old_mqa.mq_curmsgs;
+    }
+    return 0;
+}
+}

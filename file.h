@@ -21,7 +21,6 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 namespace descriptor {
 
-// Open flags
 struct open_flags {
     static constexpr int32_t read_only = 00;
     static constexpr int32_t write_only = 01;
@@ -30,6 +29,7 @@ struct open_flags {
     static constexpr int32_t exclusive = 0200;
     static constexpr int32_t truncate = 01000;
     static constexpr int32_t append = 02000;
+    static constexpr int32_t nonblocking = 04000;
 };
 
 struct open_mode {
@@ -61,7 +61,35 @@ enum class memory_map_sync_flags : int32_t {
     invalidate = 4  // MS_INVALIDATE
 };
 
-class file : public descriptor {
+class basic_file : public descriptor {
+    
+public:
+    basic_file() = default;
+    basic_file(const basic_file&) = delete;
+    basic_file(basic_file&&) = default;
+
+    basic_file& operator=(const basic_file&) = delete;
+    basic_file& operator=(basic_file&&) = default;
+
+    virtual ~basic_file() {
+        [[maybe_unused]] auto const result = close();
+    }
+
+    [[nodiscard]] virtual int32_t open( std::string_view path, 
+                                        int32_t flags = open_flags::read_write 
+                                                      | open_flags::create, 
+                                        int32_t mode  = open_mode::read_by_owner 
+                                                      | open_mode::write_by_owner
+                                                      | open_mode::read_by_group
+                                                      | open_mode::read_by_others) noexcept;
+
+protected:    
+    [[nodiscard]] int32_t create() noexcept final {
+        return 0;
+    }
+};
+
+class file : public basic_file {
     void* memory_map_addr_{nullptr};
     std::size_t memory_map_length_{0};
     std::size_t memory_lock_length_{0};
@@ -80,14 +108,6 @@ public:
         result = memory_unmap();
         result = close();
     }
-
-    [[nodiscard]] virtual int32_t open( std::string_view path, 
-                                        int32_t flags = open_flags::read_write 
-                                                      | open_flags::create, 
-                                        int32_t mode  = open_mode::read_by_owner 
-                                                      | open_mode::write_by_owner
-                                                      | open_mode::read_by_group
-                                                      | open_mode::read_by_others) noexcept;
 
     [[nodiscard]] int64_t size() const noexcept;
 
@@ -114,15 +134,10 @@ public:
     [[nodiscard]] std::size_t memory_lock_size() const noexcept {
         return memory_lock_length_;
     }
-
-protected:    
-    [[nodiscard]] int32_t create() noexcept final {
-        return 0;
-    }
 };
 
 class reader {
-    file file_;
+    basic_file file_;
 public:
     reader() = delete;
     explicit reader(std::string_view path) {
@@ -172,7 +187,7 @@ public:
 };
 
 class writer {
-    file file_;
+    basic_file file_;
 public:
     writer() = delete;
     explicit writer(std::string_view path) {

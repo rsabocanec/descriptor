@@ -22,7 +22,7 @@ auto main(int argc, char** argv)->int {
     }
     catch (const CLI::OptionNotFound &onf) {
         logger->critical(onf.what());
-        fmt::print(fg(fmt::color::crimson), "{}", onf.what());
+        fmt::print(fg(fmt::color::crimson), "{}\n", onf.what());
         return EXIT_FAILURE;
     }
 
@@ -57,7 +57,8 @@ auto main(int argc, char** argv)->int {
         std::array<char, new_file_size> buffer{};
         auto [read_result, bytes_read] = reader.read(buffer);
         if (read_result != 0) {
-            logger->error("Failed to read from file {} with result {}", filename, descriptor::error_description(read_result));
+            logger->error("Failed to read from file {} with result {}", 
+                filename, descriptor::error_description(read_result));
             return read_result;
         }
 
