@@ -60,15 +60,6 @@ namespace {
                 }
 
                 fmt::println("");
-
-                if (auto const notify_result = mq.notify(incoming_handler); notify_result != 0) {
-                    fmt::print( fg(fmt::color::crimson), "Failed to notify message queue {} with result {} {}\n",
-                                *mq_desc, notify_result, descriptor::error_description(notify_result));
-                    stop_flag = true;
-                }
-                else {
-                    fmt::println("Successfully set notification handler!");
-                }
             }
             else {
                 fmt::print( fg(fmt::color::crimson), "Failed to read from the message queue, with error {} {}\n", 
@@ -76,6 +67,24 @@ namespace {
 
                 stop_flag = true;
             }
+        }
+
+        if (auto const attr_result = mq.get_attributes(attr); attr_result != 0) {
+            stop_flag = true;
+            fmt::print(fg(  fmt::color::crimson), "Failed to get attributes, with error {} {}", 
+                            attr_result, descriptor::error_description(attr_result));
+        }
+        else {
+            fmt::println("Messages left in the queue: {}", attr.current_msg_count_);
+        }
+
+        if (auto const notify_result = mq.notify(incoming_handler); notify_result != 0) {
+            fmt::print( fg(fmt::color::crimson), "Failed to notify message queue {} with result {} {}\n",
+                        *mq_desc, notify_result, descriptor::error_description(notify_result));
+            stop_flag = true;
+        }
+        else {
+            fmt::println("Successfully set notification handler!");
         }
 
         mq.release();
@@ -124,8 +133,10 @@ auto main(int argc, char **argv)->int {
         std::this_thread::sleep_for(100ms);
     }
 
-    if (auto const result = dynamic_cast<descriptor::message_queue*>(subscriber.get())->notify(); result != 0) {
-        logger->error("Failed to clear notify message queue {} with result {} {}",
+    std::this_thread::sleep_for(2s);
+
+    if (auto const result = subscriber->close(); result != 0) {
+        logger->error("Failed to close message queue {} with result {} {}",
             message_queue_name, result, descriptor::error_description(result));
     }
 

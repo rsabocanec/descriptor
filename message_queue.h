@@ -28,10 +28,10 @@ class message_queue : public basic_file {
     
 public:
     struct attributes {
-        int32_t flags_;         // Flags: 0 or O_NONBLOCK
-        int32_t max_msg_count_; // Maximum number of messages on queue
-        int32_t max_msg_size_;  // Maximum message size (bytes)
-        int32_t cur_msg_count_; // Number of messages currently in queue
+        int32_t flags_;             // Flags: 0 or O_NONBLOCK
+        int32_t max_msg_count_;     // Maximum number of messages on queue
+        int32_t max_msg_size_;      // Maximum message size (bytes)
+        int32_t current_msg_count_; // Number of messages currently in queue
     };
 
     message_queue() = default;

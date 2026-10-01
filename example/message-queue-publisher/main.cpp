@@ -112,7 +112,7 @@ auto main(int argc, char **argv)->int {
             fmt::println("");
         }
 
-        std::this_thread::sleep_for(1s);
+        std::this_thread::sleep_for(2s);
     }
 
     fmt::print(fg(fmt::color::green), "\nEXIT!\n");

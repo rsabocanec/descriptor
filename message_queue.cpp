@@ -112,13 +112,14 @@ std::tuple<int32_t, int32_t> message_queue::write(std::span<const std::byte> buf
     if (descriptor_.load() != -1) {
         [[maybe_unused]] const unsigned int priority{};
         
-        std::get<1>(result) =
+        auto const send_result =
             ::mq_send(descriptor_.load(),
                       static_cast<const char*>(static_cast<const void*>(buffer.data())),
                       static_cast<std::size_t>(buffer.size()),
                       priority);
 
-        std::get<0>(result) = std::get<1>(result) == -1 ? errno : 0;
+        std::get<0>(result) = send_result == -1 ? errno : 0;
+        std::get<1>(result) = send_result == -1 ? -1 : static_cast<int32_t>(buffer.size());
     }
 
     return result;
@@ -136,13 +137,14 @@ std::tuple<int32_t, int32_t> message_queue::timed_write(std::span<const std::byt
         tm.tv_sec += timeout_nanoseconds / 1'000'000'000;
         tm.tv_nsec += timeout_nanoseconds % 1'000'000'000;
 
-        std::get<1>(result) =
+        auto const send_result =
             ::mq_timedsend(descriptor_.load(),
                            static_cast<const char*>(static_cast<const void*>(buffer.data())),
                            static_cast<std::size_t>(buffer.size()),
                            priority, &tm);
 
-        std::get<0>(result) = std::get<1>(result) == -1 ? errno : 0;
+        std::get<0>(result) = send_result == -1 ? errno : 0;
+        std::get<1>(result) = send_result == -1 ? -1 : static_cast<int32_t>(buffer.size());
     }
 
     return result;
@@ -223,7 +225,7 @@ int32_t message_queue::get_attributes(attributes &attr) const noexcept {
     attr.flags_ = mqa.mq_flags;
     attr.max_msg_count_ = mqa.mq_maxmsg;
     attr.max_msg_size_ = mqa.mq_msgsize;
-    attr.cur_msg_count_ = mqa.mq_curmsgs;
+    attr.current_msg_count_ = mqa.mq_curmsgs;
 
     return 0;
 }
@@ -238,7 +240,7 @@ int32_t message_queue::set_attributes(const attributes &attr, std::optional<attr
         .mq_flags = attr.flags_,
         .mq_maxmsg = attr.max_msg_count_,
         .mq_msgsize = attr.max_msg_size_,
-        .mq_curmsgs = attr.cur_msg_count_
+        .mq_curmsgs = attr.current_msg_count_
     };
 
     mq_attr old_mqa {};
@@ -251,7 +253,7 @@ int32_t message_queue::set_attributes(const attributes &attr, std::optional<attr
         old_attr->flags_ = old_mqa.mq_flags;
         old_attr->max_msg_count_ = old_mqa.mq_maxmsg;
         old_attr->max_msg_size_ = old_mqa.mq_msgsize;
-        old_attr->cur_msg_count_ = old_mqa.mq_curmsgs;
+        old_attr->current_msg_count_ = old_mqa.mq_curmsgs;
     }
     return 0;
 }
