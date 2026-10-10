@@ -25,7 +25,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 namespace descriptor {
 class message_queue : public basic_file {
     std::string name_;
-    
+
 public:
     struct attributes {
         int32_t flags_;             // Flags: 0 or O_NONBLOCK
@@ -42,10 +42,10 @@ public:
     message_queue& operator=(const message_queue&) = delete;
     message_queue& operator=(message_queue&&) = default;
 
-    [[nodiscard]] int32_t open( std::string_view name, 
-                                int32_t flags = open_flags::read_write 
-                                              | open_flags::create, 
-                                int32_t mode  = open_mode::read_by_owner 
+    [[nodiscard]] int32_t open( std::string_view name,
+                                int32_t flags = open_flags::read_write
+                                              | open_flags::create,
+                                int32_t mode  = open_mode::read_by_owner
                                               | open_mode::write_by_owner
                                               | open_mode::read_by_group
                                               | open_mode::read_by_others) noexcept final override;
@@ -98,12 +98,7 @@ public:
 
     int32_t notify() const noexcept;
     int32_t notify(int32_t signal_number) const noexcept;
-    int32_t notify(std::function<void(std::unique_ptr<int32_t> ptr)> handler) const noexcept; 
-
-    void release() noexcept {
-        // Avoid closing the queue
-        descriptor_ = -1;
-    }
+    int32_t notify(std::function<void(std::unique_ptr<int32_t> ptr)> handler) const noexcept;
 
     int32_t get_attributes(attributes &attr) const noexcept;
     int32_t set_attributes(const attributes &attr, std::optional<attributes> old_attr = std::nullopt) const noexcept;

@@ -55,3 +55,5 @@ add_subdirectory(fifo)
 
 add_subdirectory(message-queue-publisher)
 add_subdirectory(message-queue-subscriber)
+
+add_subdirectory(memory-file)

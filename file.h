@@ -32,6 +32,7 @@ struct open_flags {
     static constexpr int32_t nonblocking = 04000;
 };
 
+
 struct open_mode {
     static constexpr int32_t read_by_owner = 0400;
     static constexpr int32_t write_by_owner = 0200;
@@ -49,11 +50,13 @@ struct open_mode {
     static constexpr int32_t all_by_others = read_by_others | write_by_others | exec_by_others;
 };
 
+
 enum class memory_map_access : int32_t {
     read = 1,       // PROT_READ,
     write = 2,      // PROT_WRITE,
     readwrite = 3   // PROT_READ | PROT_WRITE
 };
+
 
 enum class memory_map_sync_flags : int32_t {
     async = 1,      // MS_ASYNC,
@@ -61,8 +64,8 @@ enum class memory_map_sync_flags : int32_t {
     invalidate = 4  // MS_INVALIDATE
 };
 
-class basic_file : public descriptor {
 
+class basic_file : public descriptor {
 public:
     basic_file() = default;
     basic_file(const basic_file&) = delete;
@@ -96,6 +99,7 @@ protected:
         return 0;
     }
 };
+
 
 class file : public basic_file {
     void* memory_map_addr_{nullptr};
@@ -135,6 +139,46 @@ public:
         return memory_lock_length_;
     }
 };
+
+
+struct memory_file_flags {
+    static constexpr int32_t close_on_exec = 01;
+    static constexpr int32_t allow_sealing = 02;
+    static constexpr int32_t huge_table = 04;
+
+    static constexpr int32_t huge_64KB = (16U << 26);
+    static constexpr int32_t huge_512KB = (19U << 26);
+    static constexpr int32_t huge_1MB = (20U << 26);
+    static constexpr int32_t huge_2MB = (21U << 26);
+    static constexpr int32_t huge_8MB = (23U << 26);
+    static constexpr int32_t huge_16MB = (24U << 26);
+    static constexpr int32_t huge_32MB = (25U << 26);
+    static constexpr int32_t huge_256MB = (28U << 26);
+    static constexpr int32_t huge_512MB = (29U << 26);
+    static constexpr int32_t huge_1GB = (30U << 26);
+    static constexpr int32_t huge_2GB = (31U << 26);
+    static constexpr int32_t huge_16GB = (34U << 26);
+};
+
+
+class memory_file : public file {
+public:
+    memory_file() = default;
+    memory_file(const memory_file&) = delete;
+    memory_file(memory_file&&) = default;
+
+    memory_file& operator=(const memory_file&) = delete;
+    memory_file& operator=(memory_file&&) = default;
+
+    virtual ~memory_file() {
+        [[maybe_unused]] auto const result = close();
+    }
+
+    [[nodiscard]] int32_t open( std::string_view path,
+                                int32_t flags = memory_file_flags::allow_sealing,
+                                [[maybe_unused]] int32_t mode = 0) noexcept final override;
+};
+
 
 class reader {
     basic_file file_;
@@ -186,6 +230,7 @@ public:
     }
 };
 
+
 class writer {
     basic_file file_;
 public:
@@ -236,24 +281,6 @@ public:
     }
 };
 
-class memory_file : public file {
-public:
-    memory_file() = default;
-    memory_file(const memory_file&) = delete;
-    memory_file(memory_file&&) = default;
-
-    memory_file& operator=(const memory_file&) = delete;
-    memory_file& operator=(memory_file&&) = default;
-
-    virtual ~memory_file() {
-        [[maybe_unused]] auto const result = close();
-    }
-
-    [[nodiscard]] int32_t open( std::string_view path,
-                                int32_t flags = open_flags::read_write
-                                              | open_flags::create,
-               [[maybe_unused]] int32_t mode = 0) noexcept final override;
-};
 
 // Utility functions
 [[nodiscard]] int32_t make_fifo(std::string_view filename, int32_t mode  = open_mode::read_by_owner

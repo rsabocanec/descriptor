@@ -1,9 +1,15 @@
 #include "file.h"
 
+#ifndef _GNU_SOURCE
+# sdefine _GNU_SOURCE
+#endif
+
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+
+#include <linux/memfd.h>
 
 // Check constants
 static_assert(O_RDONLY == descriptor::open_flags::read_only, "O_RDONLY does not match descriptor::open_flags::read_only");
@@ -99,8 +105,8 @@ int32_t descriptor::file::memory_map(memory_map_access access, std::size_t size/
 
     const std::size_t length = size == 0 ? static_cast<std::size_t>(st.st_size) : size;
 
-    auto const result = ::mmap( nullptr, length, 
-                                static_cast<int32_t>(access), 
+    auto const result = ::mmap( nullptr, length,
+                                static_cast<int32_t>(access),
                                 MAP_SHARED, descriptor_.load(), 0);
 
     if (result == MAP_FAILED) {
@@ -173,6 +179,37 @@ int32_t descriptor::file::memory_unlock() noexcept {
 
     return 0;
 }
+
+
+static_assert(MFD_CLOEXEC == descriptor::memory_file_flags::close_on_exec, "MFD_CLOEXEC does not match descriptor::memory_file_flags::close_on_exec");
+static_assert(MFD_ALLOW_SEALING == descriptor::memory_file_flags::allow_sealing, "MFD_ALLOW_SEALING does not match descriptor::memory_file_flags::allow_sealing");
+static_assert(MFD_HUGETLB == descriptor::memory_file_flags::huge_table, "MFD_HUGE_TABLE does not match descriptor::memory_file_flags::huge_table");
+
+static_assert(descriptor::memory_file_flags::huge_64KB	== HUGETLB_FLAG_ENCODE_64KB ,
+              "descriptor::memory_file_flags::huge_64KB does not match HUGETLB_FLAG_ENCODE_64KB");
+static_assert(descriptor::memory_file_flags::huge_512KB	== HUGETLB_FLAG_ENCODE_512KB,
+              "descriptor::memory_file_flags::huge_64KB does not match HUGETLB_FLAG_ENCODE_64KB");
+static_assert(descriptor::memory_file_flags::huge_1MB	== HUGETLB_FLAG_ENCODE_1MB  ,
+              "descriptor::memory_file_flags::huge_64KB does not match HUGETLB_FLAG_ENCODE_64KB");
+static_assert(descriptor::memory_file_flags::huge_2MB	== HUGETLB_FLAG_ENCODE_2MB  ,
+              "descriptor::memory_file_flags::huge_64KB does not match HUGETLB_FLAG_ENCODE_64KB");
+static_assert(descriptor::memory_file_flags::huge_8MB	== HUGETLB_FLAG_ENCODE_8MB  ,
+              "descriptor::memory_file_flags::huge_64KB does not match HUGETLB_FLAG_ENCODE_64KB");
+static_assert(descriptor::memory_file_flags::huge_16MB	== HUGETLB_FLAG_ENCODE_16MB ,
+              "descriptor::memory_file_flags::huge_64KB does not match HUGETLB_FLAG_ENCODE_64KB");
+static_assert(descriptor::memory_file_flags::huge_32MB	== HUGETLB_FLAG_ENCODE_32MB ,
+              "descriptor::memory_file_flags::huge_64KB does not match HUGETLB_FLAG_ENCODE_64KB");
+static_assert(descriptor::memory_file_flags::huge_256MB	== HUGETLB_FLAG_ENCODE_256MB,
+              "descriptor::memory_file_flags::huge_64KB does not match HUGETLB_FLAG_ENCODE_64KB");
+static_assert(descriptor::memory_file_flags::huge_512MB	== HUGETLB_FLAG_ENCODE_512MB,
+              "descriptor::memory_file_flags::huge_64KB does not match HUGETLB_FLAG_ENCODE_64KB");
+static_assert(descriptor::memory_file_flags::huge_1GB	== HUGETLB_FLAG_ENCODE_1GB  ,
+              "descriptor::memory_file_flags::huge_64KB does not match HUGETLB_FLAG_ENCODE_64KB");
+static_assert(descriptor::memory_file_flags::huge_2GB	== HUGETLB_FLAG_ENCODE_2GB  ,
+              "descriptor::memory_file_flags::huge_64KB does not match HUGETLB_FLAG_ENCODE_64KB");
+static_assert(descriptor::memory_file_flags::huge_16GB	== HUGETLB_FLAG_ENCODE_16GB ,
+              "descriptor::memory_file_flags::huge_64KB does not match HUGETLB_FLAG_ENCODE_64KB");
+
 
 int32_t descriptor::memory_file::open(std::string_view path, int32_t flags, int32_t) noexcept {
     descriptor_ = ::memfd_create(path.data(), static_cast<unsigned int>(flags));
