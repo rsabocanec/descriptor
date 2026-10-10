@@ -42,7 +42,7 @@ int32_t descriptor::basic_file::open(std::string_view path, int32_t flags, int32
     return 0;
 }
 
-int64_t descriptor::file::size() const noexcept {
+int64_t descriptor::basic_file::size() const noexcept {
     if (descriptor_.load() == -1) {
         return -1;
     }
@@ -55,7 +55,7 @@ int64_t descriptor::file::size() const noexcept {
     return static_cast<int64_t>(st.st_size);
 }
 
-int32_t descriptor::file::truncate(std::size_t size) noexcept {
+int32_t descriptor::basic_file::truncate(std::size_t size) noexcept {
     if (descriptor_.load() == -1) {
         return -1;
     }
@@ -170,6 +170,16 @@ int32_t descriptor::file::memory_unlock() noexcept {
     }
 
     memory_lock_length_ = 0;
+
+    return 0;
+}
+
+int32_t descriptor::memory_file::open(std::string_view path, int32_t flags, int32_t) noexcept {
+    descriptor_ = ::memfd_create(path.data(), static_cast<unsigned int>(flags));
+
+    if (descriptor_.load() == -1) {
+        return errno;
+    }
 
     return 0;
 }

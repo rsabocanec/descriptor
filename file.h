@@ -62,7 +62,7 @@ enum class memory_map_sync_flags : int32_t {
 };
 
 class basic_file : public descriptor {
-    
+
 public:
     basic_file() = default;
     basic_file(const basic_file&) = delete;
@@ -75,15 +75,23 @@ public:
         [[maybe_unused]] auto const result = close();
     }
 
-    [[nodiscard]] virtual int32_t open( std::string_view path, 
-                                        int32_t flags = open_flags::read_write 
-                                                      | open_flags::create, 
-                                        int32_t mode  = open_mode::read_by_owner 
+    [[nodiscard]] virtual int32_t open( std::string_view path,
+                                        int32_t flags = open_flags::read_write
+                                                      | open_flags::create,
+                                        int32_t mode  = open_mode::read_by_owner
                                                       | open_mode::write_by_owner
                                                       | open_mode::read_by_group
                                                       | open_mode::read_by_others) noexcept;
 
-protected:    
+    [[nodiscard]] int64_t size() const noexcept;
+
+    [[nodiscard]] int32_t truncate(std::size_t size) noexcept;
+
+    [[nodiscard]] int32_t deallocate(std::size_t size) noexcept {
+        return truncate(size);
+    }
+
+protected:
     [[nodiscard]] int32_t create() noexcept final {
         return 0;
     }
@@ -107,14 +115,6 @@ public:
         result = memory_sync(memory_map_sync_flags::sync);
         result = memory_unmap();
         result = close();
-    }
-
-    [[nodiscard]] int64_t size() const noexcept;
-
-    [[nodiscard]] int32_t truncate(std::size_t size) noexcept;
-
-    [[nodiscard]] int32_t deallocate(std::size_t size) noexcept {
-        return truncate(size);
     }
 
     [[nodiscard]] int32_t memory_map(memory_map_access access, std::size_t size = 0) noexcept;
@@ -155,7 +155,7 @@ public:
     bool valid() const noexcept {
         return file_.valid();
     }
-    
+
     template<std::random_access_iterator It>
     [[nodiscard]] std::tuple<int32_t, int32_t> read(It first, std::size_t count) const noexcept {
         return file_.read(first, count);
@@ -236,8 +236,27 @@ public:
     }
 };
 
+class memory_file : public file {
+public:
+    memory_file() = default;
+    memory_file(const memory_file&) = delete;
+    memory_file(memory_file&&) = default;
+
+    memory_file& operator=(const memory_file&) = delete;
+    memory_file& operator=(memory_file&&) = default;
+
+    virtual ~memory_file() {
+        [[maybe_unused]] auto const result = close();
+    }
+
+    [[nodiscard]] int32_t open( std::string_view path,
+                                int32_t flags = open_flags::read_write
+                                              | open_flags::create,
+               [[maybe_unused]] int32_t mode = 0) noexcept final override;
+};
+
 // Utility functions
-[[nodiscard]] int32_t make_fifo(std::string_view filename, int32_t mode  = open_mode::read_by_owner 
+[[nodiscard]] int32_t make_fifo(std::string_view filename, int32_t mode  = open_mode::read_by_owner
                                                                          | open_mode::write_by_owner
                                                                          | open_mode::read_by_group
                                                                          | open_mode::read_by_others) noexcept;
