@@ -37,6 +37,18 @@ static_assert(descriptor::open_mode::write_by_others == S_IWOTH, "S_IWOTH does n
 static_assert(descriptor::open_mode::exec_by_others == S_IXOTH, "S_IXOTH does not match descriptor::open_mode::exec_by_others");
 static_assert(descriptor::open_mode::all_by_others == S_IRWXO, "S_IRWXO does not match descriptor::open_mode::all_by_others");
 
+static_assert(static_cast<int32_t>(descriptor::seek_position::set) == SEEK_SET, "SEEK_SET does not match descriptor::seek_position::set");
+static_assert(static_cast<int32_t>(descriptor::seek_position::current) == SEEK_CUR, "SEEK_CUR does not match descriptor::seek_position::current");
+static_assert(static_cast<int32_t>(descriptor::seek_position::end) == SEEK_END, "SEEK_END does not match descriptor::seek_position::end");
+static_assert(static_cast<int32_t>(descriptor::seek_position::data) == SEEK_DATA, "SEEK_DATA does not match descriptor::seek_position::data");
+static_assert(static_cast<int32_t>(descriptor::seek_position::hole) == SEEK_HOLE, "SEEK_HOLE does not match descriptor::seek_position::hole");
+static_assert(static_cast<int32_t>(descriptor::memory_map_access::read) == PROT_READ, "PROT_READ does not match descriptor::memory_map_access::read");
+static_assert(static_cast<int32_t>(descriptor::memory_map_access::write) == PROT_WRITE, "PROT_WRITE does not match descriptor::memory_map_access::write");
+static_assert(static_cast<int32_t>(descriptor::memory_map_access::readwrite) == (PROT_READ | PROT_WRITE), "PROT_READ | PROT_WRITE does not match descriptor::memory_map_access::readwrite");
+static_assert(static_cast<int32_t>(descriptor::memory_map_sync_flags::async) == MS_ASYNC, "MS_ASYNC does not match descriptor::memory_map_sync_flags::async");
+static_assert(static_cast<int32_t>(descriptor::memory_map_sync_flags::sync) == MS_SYNC, "MS_SYNC does not match descriptor::memory_map_sync_flags::sync");
+static_assert(static_cast<int32_t>(descriptor::memory_map_sync_flags::invalidate) == MS_INVALIDATE, "MS_INVALIDATE does not match descriptor::memory_map_sync_flags::invalidate");
+
 
 int32_t descriptor::basic_file::open(std::string_view path, int32_t flags, int32_t mode/* = 0*/) noexcept {
     descriptor_ = ::open(path.data(), flags, mode);
@@ -61,7 +73,7 @@ int64_t descriptor::basic_file::size() const noexcept {
     return static_cast<int64_t>(st.st_size);
 }
 
-int32_t descriptor::basic_file::truncate(std::size_t size) noexcept {
+int32_t descriptor::basic_file::truncate(std::size_t size) const noexcept {
     if (descriptor_.load() == -1) {
         return -1;
     }
@@ -71,6 +83,22 @@ int32_t descriptor::basic_file::truncate(std::size_t size) noexcept {
         return errno;
     }
 
+    return 0;
+}
+
+int32_t descriptor::basic_file::seek(seek_position position, int64_t offset, int64_t &new_offset) const noexcept {
+    new_offset = 0;
+
+    if (descriptor_.load() == -1) {
+        return EINVAL;
+    }
+
+    auto const result = ::lseek(descriptor_.load(), static_cast<off_t>(offset), static_cast<int32_t>(position));
+    if (result == -1) {
+        return errno;
+    }
+
+    new_offset = static_cast<int64_t>(result);
     return 0;
 }
 

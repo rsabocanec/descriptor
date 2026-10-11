@@ -50,6 +50,13 @@ struct open_mode {
     static constexpr int32_t all_by_others = read_by_others | write_by_others | exec_by_others;
 };
 
+enum class seek_position : int32_t {
+    set = 0,    // SEEK_SET
+    current = 1,// SEEK_CUR
+    end = 2,    // SEEK_END
+    data = 3,   // SEEK_DATA
+    hole = 4    // SEEK_HOLE
+};
 
 enum class memory_map_access : int32_t {
     read = 1,       // PROT_READ,
@@ -60,8 +67,8 @@ enum class memory_map_access : int32_t {
 
 enum class memory_map_sync_flags : int32_t {
     async = 1,      // MS_ASYNC,
-    sync = 2,       // MS_SYNC,
-    invalidate = 4  // MS_INVALIDATE
+    invalidate = 2, // MS_INVALIDATE,
+    sync = 4        // MS_SYNC
 };
 
 
@@ -88,10 +95,29 @@ public:
 
     [[nodiscard]] int64_t size() const noexcept;
 
-    [[nodiscard]] int32_t truncate(std::size_t size) noexcept;
+    [[nodiscard]] int32_t truncate(std::size_t size) const noexcept;
 
-    [[nodiscard]] int32_t deallocate(std::size_t size) noexcept {
+    [[nodiscard]] int32_t deallocate(std::size_t size) const noexcept {
         return truncate(size);
+    }
+
+    [[nodiscard]] int32_t seek(seek_position position, int64_t offset, int64_t &new_offset) const noexcept;
+
+    [[nodiscard]] int32_t seek(seek_position position, int64_t offset) const noexcept {
+        int64_t new_offset = 0;
+        return seek(position, offset, new_offset);
+    }
+
+    [[nodiscard]] int32_t seek(seek_position position) const noexcept {
+        return seek(position, 0);
+    }
+
+    [[nodiscard]] int32_t seek(int64_t offset) const noexcept {
+        return seek(seek_position::current, offset);
+    }
+
+    [[nodiscard]] int32_t reset_position() const noexcept {
+        return seek(seek_position::set, 0);
     }
 
 protected:

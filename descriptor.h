@@ -116,6 +116,16 @@ public:
         return descriptor_.load();
     }
 
+    [[nodiscard]] int32_t duplicate(int32_t other) noexcept;
+
+    [[nodiscard]] int32_t duplicate(const descriptor& other) noexcept {
+        if (this != &other) {
+            return duplicate(other.descriptor_.load());
+        }
+
+        return 0;
+    }
+
     void release() noexcept {
         // Avoid closing the descriptor
         descriptor_ = -1;

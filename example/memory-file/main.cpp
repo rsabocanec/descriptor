@@ -56,6 +56,9 @@ auto main(int argc, char** argv)->int {
 
     assert(mem_file_reader.valid());
 
+    [[maybe_unused]] auto const reset_result = mem_file_reader.reset_position();
+    assert(reset_result == 0);
+
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, "File size before reading is {} bytes\n", mem_file_reader.size());
 
     std::array<char, new_file_size> buffer{};
