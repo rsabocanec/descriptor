@@ -111,12 +111,27 @@ public:
     [[nodiscard]] bool valid() const noexcept {
         return descriptor_ >= 0;
     }
-    
+
     [[nodiscard]] int32_t get() const noexcept {
         return descriptor_.load();
     }
 
-protected:    
+    [[nodiscard]] int32_t duplicate(int32_t other) noexcept;
+
+    [[nodiscard]] int32_t duplicate(const descriptor& other) noexcept {
+        if (this != &other) {
+            return duplicate(other.descriptor_.load());
+        }
+
+        return 0;
+    }
+
+    void release() noexcept {
+        // Avoid closing the descriptor
+        descriptor_ = -1;
+    }
+
+protected:
     [[nodiscard]] virtual int32_t create() noexcept = 0;
 
 public:
@@ -156,12 +171,12 @@ public:
 
     [[nodiscard]] virtual std::tuple<int32_t, int32_t> write(std::span<const std::byte> buffer) const noexcept;
 
-    [[nodiscard]] virtual std::tuple<int32_t, int32_t> splice(const descriptor& source, std::size_t count, 
+    [[nodiscard]] virtual std::tuple<int32_t, int32_t> splice(const descriptor& source, std::size_t count,
                                                               std::optional<int32_t> offset_in = std::nullopt,
                                                               std::optional<int32_t> offset_out = std::nullopt,
                                                               uint32_t flags = 0ul) const noexcept;
 
-    template <typename Period>                                                              
+    template <typename Period>
     [[nodiscard]] int32_t select(duration<Period> &&timeout) const noexcept {
         return select(std::chrono::duration_cast<std::chrono::nanoseconds>(timeout).count());
     }
@@ -174,6 +189,13 @@ public:
 protected:
     [[nodiscard]] int32_t select(int64_t timeout_nanoseconds) const noexcept;
     [[nodiscard]] int32_t poll(int64_t timeout_nanoseconds, polled_state &state) const noexcept;
+};
+
+// Does not close the descriptor when destroyed
+class weak_descriptor {
+    int32_t descriptor_{-1};
+public:
+    explicit weak_descriptor(const descriptor& desc) : descriptor_(desc.get()) {}
 };
 
 // Utility functions

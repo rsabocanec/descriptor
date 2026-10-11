@@ -30,10 +30,12 @@ public:
     shared_memory& operator=(shared_memory&&) = delete;
     virtual ~shared_memory() = default;
 
-    [[nodiscard]] int32_t open( std::string_view path, 
-                                int32_t flags = 0102 /* O_RDWR | O_CREAT*/, 
-                                int32_t mode = 0644 /*S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH*/) noexcept final override;
-
+    [[nodiscard]] int32_t open( std::string_view path,
+                                int32_t flags = open_flags::read_write | open_flags::create,
+                                int32_t mode = open_mode::read_by_owner
+                                             | open_mode::write_by_owner
+                                             | open_mode::read_by_group
+                                             | open_mode::read_by_others) noexcept final override;
     [[nodiscard]] int32_t close() noexcept final override;
 };
 }

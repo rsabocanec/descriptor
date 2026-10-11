@@ -32,6 +32,7 @@ struct open_flags {
     static constexpr int32_t nonblocking = 04000;
 };
 
+
 struct open_mode {
     static constexpr int32_t read_by_owner = 0400;
     static constexpr int32_t write_by_owner = 0200;
@@ -49,20 +50,29 @@ struct open_mode {
     static constexpr int32_t all_by_others = read_by_others | write_by_others | exec_by_others;
 };
 
+enum class seek_position : int32_t {
+    set = 0,    // SEEK_SET
+    current = 1,// SEEK_CUR
+    end = 2,    // SEEK_END
+    data = 3,   // SEEK_DATA
+    hole = 4    // SEEK_HOLE
+};
+
 enum class memory_map_access : int32_t {
     read = 1,       // PROT_READ,
     write = 2,      // PROT_WRITE,
     readwrite = 3   // PROT_READ | PROT_WRITE
 };
 
+
 enum class memory_map_sync_flags : int32_t {
     async = 1,      // MS_ASYNC,
-    sync = 2,       // MS_SYNC,
-    invalidate = 4  // MS_INVALIDATE
+    invalidate = 2, // MS_INVALIDATE,
+    sync = 4        // MS_SYNC
 };
 
+
 class basic_file : public descriptor {
-    
 public:
     basic_file() = default;
     basic_file(const basic_file&) = delete;
@@ -75,19 +85,47 @@ public:
         [[maybe_unused]] auto const result = close();
     }
 
-    [[nodiscard]] virtual int32_t open( std::string_view path, 
-                                        int32_t flags = open_flags::read_write 
-                                                      | open_flags::create, 
-                                        int32_t mode  = open_mode::read_by_owner 
+    [[nodiscard]] virtual int32_t open( std::string_view path,
+                                        int32_t flags = open_flags::read_write
+                                                      | open_flags::create,
+                                        int32_t mode  = open_mode::read_by_owner
                                                       | open_mode::write_by_owner
                                                       | open_mode::read_by_group
                                                       | open_mode::read_by_others) noexcept;
 
-protected:    
+    [[nodiscard]] int64_t size() const noexcept;
+
+    [[nodiscard]] int32_t truncate(std::size_t size) const noexcept;
+
+    [[nodiscard]] int32_t deallocate(std::size_t size) const noexcept {
+        return truncate(size);
+    }
+
+    [[nodiscard]] int32_t seek(seek_position position, int64_t offset, int64_t &new_offset) const noexcept;
+
+    [[nodiscard]] int32_t seek(seek_position position, int64_t offset) const noexcept {
+        int64_t new_offset = 0;
+        return seek(position, offset, new_offset);
+    }
+
+    [[nodiscard]] int32_t seek(seek_position position) const noexcept {
+        return seek(position, 0);
+    }
+
+    [[nodiscard]] int32_t seek(int64_t offset) const noexcept {
+        return seek(seek_position::current, offset);
+    }
+
+    [[nodiscard]] int32_t reset_position() const noexcept {
+        return seek(seek_position::set, 0);
+    }
+
+protected:
     [[nodiscard]] int32_t create() noexcept final {
         return 0;
     }
 };
+
 
 class file : public basic_file {
     void* memory_map_addr_{nullptr};
@@ -109,14 +147,6 @@ public:
         result = close();
     }
 
-    [[nodiscard]] int64_t size() const noexcept;
-
-    [[nodiscard]] int32_t truncate(std::size_t size) noexcept;
-
-    [[nodiscard]] int32_t deallocate(std::size_t size) noexcept {
-        return truncate(size);
-    }
-
     [[nodiscard]] int32_t memory_map(memory_map_access access, std::size_t size = 0) noexcept;
     [[nodiscard]] int32_t memory_unmap() noexcept;
     [[nodiscard]] int32_t memory_sync(memory_map_sync_flags flags) noexcept;
@@ -135,6 +165,46 @@ public:
         return memory_lock_length_;
     }
 };
+
+
+struct memory_file_flags {
+    static constexpr int32_t close_on_exec = 01;
+    static constexpr int32_t allow_sealing = 02;
+    static constexpr int32_t huge_table = 04;
+
+    static constexpr int32_t huge_64KB = (16U << 26);
+    static constexpr int32_t huge_512KB = (19U << 26);
+    static constexpr int32_t huge_1MB = (20U << 26);
+    static constexpr int32_t huge_2MB = (21U << 26);
+    static constexpr int32_t huge_8MB = (23U << 26);
+    static constexpr int32_t huge_16MB = (24U << 26);
+    static constexpr int32_t huge_32MB = (25U << 26);
+    static constexpr int32_t huge_256MB = (28U << 26);
+    static constexpr int32_t huge_512MB = (29U << 26);
+    static constexpr int32_t huge_1GB = (30U << 26);
+    static constexpr int32_t huge_2GB = (31U << 26);
+    static constexpr int32_t huge_16GB = (34U << 26);
+};
+
+
+class memory_file : public file {
+public:
+    memory_file() = default;
+    memory_file(const memory_file&) = delete;
+    memory_file(memory_file&&) = default;
+
+    memory_file& operator=(const memory_file&) = delete;
+    memory_file& operator=(memory_file&&) = default;
+
+    virtual ~memory_file() {
+        [[maybe_unused]] auto const result = close();
+    }
+
+    [[nodiscard]] int32_t open( std::string_view path,
+                                int32_t flags = memory_file_flags::allow_sealing,
+                                [[maybe_unused]] int32_t mode = 0) noexcept final override;
+};
+
 
 class reader {
     basic_file file_;
@@ -155,7 +225,7 @@ public:
     bool valid() const noexcept {
         return file_.valid();
     }
-    
+
     template<std::random_access_iterator It>
     [[nodiscard]] std::tuple<int32_t, int32_t> read(It first, std::size_t count) const noexcept {
         return file_.read(first, count);
@@ -185,6 +255,7 @@ public:
         return file_.poll(std::forward<duration<Period>>(timeout), state);
     }
 };
+
 
 class writer {
     basic_file file_;
@@ -236,8 +307,9 @@ public:
     }
 };
 
+
 // Utility functions
-[[nodiscard]] int32_t make_fifo(std::string_view filename, int32_t mode  = open_mode::read_by_owner 
+[[nodiscard]] int32_t make_fifo(std::string_view filename, int32_t mode  = open_mode::read_by_owner
                                                                          | open_mode::write_by_owner
                                                                          | open_mode::read_by_group
                                                                          | open_mode::read_by_others) noexcept;

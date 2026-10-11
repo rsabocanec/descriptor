@@ -1,4 +1,3 @@
-#include <tcp_socket.h>
 #include <file.h>
 
 #include "../utility.hpp"
@@ -13,7 +12,7 @@ auto main(int argc, char** argv)->int {
     const std::string mmap_filename_option{"-m,--mmap-file"};
 
     auto [logger, app] = descriptor::example::utility::init_app(
-        argc, argv, {mmap_filename_option}, "Test poll() function");
+        argc, argv, {mmap_filename_option}, "Test memory-map");
 
     std::string filename{};
 
@@ -32,9 +31,9 @@ auto main(int argc, char** argv)->int {
         descriptor::file file{};
 
         auto result = file.open(filename);
-        
+
         if (result != 0) {
-            logger->error("Failed to open file {} with result {}", 
+            logger->error("Failed to open file {} with result {}",
                 filename, descriptor::error_description(result));
             return result;
         }
@@ -46,10 +45,10 @@ auto main(int argc, char** argv)->int {
         }
 
         // Write some data to the memory-mapped region
-        std::string_view data = "Hello, memory-mapped file!";
+        constexpr std::string_view data = "Hello, memory-mapped file!";
         std::memcpy(file.memory_map_address(), data.data(), data.size());
     }
-    
+
     // Print the content of the file to verify the write operation
     {
         descriptor::reader reader(filename);
@@ -57,7 +56,7 @@ auto main(int argc, char** argv)->int {
         std::array<char, new_file_size> buffer{};
         auto [read_result, bytes_read] = reader.read(buffer);
         if (read_result != 0) {
-            logger->error("Failed to read from file {} with result {}", 
+            logger->error("Failed to read from file {} with result {}",
                 filename, descriptor::error_description(read_result));
             return read_result;
         }

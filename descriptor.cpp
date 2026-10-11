@@ -46,6 +46,30 @@ int32_t descriptor::close() noexcept {
     return 0;
 }
 
+
+int32_t descriptor::duplicate(int32_t other) noexcept {
+    if (descriptor_.load() == -1) {
+        descriptor_ = ::dup(other);
+        return descriptor_ == -1 ? errno : 0;
+    }
+    else {
+        int32_t new_descriptor = ::dup2(other, descriptor_.load());
+        if (new_descriptor == -1) {
+            return errno;
+        }
+
+        if (::close(descriptor_.load()) == -1) {
+            int32_t close_errno = errno;
+            ::close(new_descriptor); // Attempt to close the new descriptor
+            return close_errno;
+        }
+
+        descriptor_ = new_descriptor;
+        return 0;
+    }
+}
+
+
 std::tuple<int32_t, int32_t> descriptor::read(std::span<std::byte> buffer) const noexcept {
     std::tuple<int32_t, int32_t> result {EINVAL, -1};
 
@@ -88,10 +112,10 @@ std::tuple<int32_t, int32_t> descriptor::splice(const descriptor& source, std::s
 
     if (descriptor_.load() != -1) {
         std::get<1>(result) =
-            ::copy_file_range(source.descriptor_.load(), 
-                              offset_in ? &offset_in_value : nullptr, 
-                              descriptor_.load(), 
-                              offset_out ? &offset_out_value : nullptr, 
+            ::copy_file_range(source.descriptor_.load(),
+                              offset_in ? &offset_in_value : nullptr,
+                              descriptor_.load(),
+                              offset_out ? &offset_out_value : nullptr,
                               count, flags);
 
         std::get<0>(result) = std::get<1>(result) == -1 ? errno : 0;
@@ -126,7 +150,7 @@ int32_t descriptor::select(int64_t timeout_nanoseconds) const noexcept {
     FD_SET(descriptor_.load(), &rfds);
 
     ::pthread_sigmask(SIG_SETMASK, nullptr, &oldmask);
-    
+
     int32_t ready{};
 
     pthread_cleanup_push([](void *arg) {
@@ -174,7 +198,7 @@ int32_t descriptor::poll(int64_t timeout_nanoseconds, polled_state &state) const
     };
 
     ::pthread_sigmask(SIG_SETMASK, nullptr, &oldmask);
-    
+
     int32_t ready{};
 
     pthread_cleanup_push([](void *arg) {
@@ -206,8 +230,8 @@ void report_error(std::ostream& os, int32_t error_num, std::string_view prefix,
         << "in " << location.file_name()
         << " (" << location.function_name() << "), line "
         << location.line() << '\n'
-        << "\nStack trace:\n" 
-#ifdef _STACKTRACE_SUPPORTED        
+        << "\nStack trace:\n"
+#ifdef _STACKTRACE_SUPPORTED
         << std::stacktrace::current() << '\n'
 #endif
         ;

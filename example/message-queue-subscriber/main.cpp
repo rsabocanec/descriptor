@@ -38,18 +38,18 @@ namespace {
 
         fmt::println("Handling notification from descriptor {}", *mq_desc);
 
-        descriptor::message_queue mq(*mq_desc);
+        descriptor::message_queue mq{*mq_desc};
 
         descriptor::message_queue::attributes attr{};
 
         if (auto const attr_result = mq.get_attributes(attr); attr_result != 0) {
             stop_flag = true;
-            fmt::print(fg(  fmt::color::crimson), "Failed to get attributes, with error {} {}", 
+            fmt::print(fg(  fmt::color::crimson), "Failed to get attributes, with error {} {}",
                             attr_result, descriptor::error_description(attr_result));
         }
         else {
             auto receive_buffer = std::make_unique<uint8_t[]>(attr.max_msg_size_);
-            
+
             auto [result, count] = mq.read(std::as_writable_bytes(std::span(receive_buffer.get(), attr.max_msg_size_)));
 
             fmt::println("Received {} bytes:", count);
@@ -62,7 +62,7 @@ namespace {
                 fmt::println("");
             }
             else {
-                fmt::print( fg(fmt::color::crimson), "Failed to read from the message queue, with error {} {}\n", 
+                fmt::print( fg(fmt::color::crimson), "Failed to read from the message queue, with error {} {}\n",
                             result, descriptor::error_description(result));
 
                 stop_flag = true;
@@ -71,7 +71,7 @@ namespace {
 
         if (auto const attr_result = mq.get_attributes(attr); attr_result != 0) {
             stop_flag = true;
-            fmt::print(fg(  fmt::color::crimson), "Failed to get attributes, with error {} {}", 
+            fmt::print(fg(  fmt::color::crimson), "Failed to get attributes, with error {} {}",
                             attr_result, descriptor::error_description(attr_result));
         }
         else {
@@ -88,7 +88,7 @@ namespace {
         }
 
         mq.release();
-        
+
         fmt::println("Exiting notification handler");
     }
 }
@@ -116,9 +116,9 @@ auto main(int argc, char **argv)->int {
     }
 
     std::unique_ptr<descriptor::basic_file> subscriber{new descriptor::message_queue};
-    
+
     if (auto const result = subscriber->open(message_queue_name); result != 0) {
-        logger->error("Failed to open message queue {} with result {} {}", 
+        logger->error("Failed to open message queue {} with result {} {}",
             message_queue_name, result, descriptor::error_description(result));
         return result;
     }
