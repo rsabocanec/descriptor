@@ -24,6 +24,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <optional>
 #include <string_view>
 #include <iterator>
+#include <concepts>
 #include <source_location>
 
 #include <cstdint>
@@ -77,6 +78,7 @@ struct polled_state {
     void set_state(int16_t revents) noexcept;
 };
 
+
 class descriptor {
 protected:
     std::atomic<int32_t> descriptor_{-1};
@@ -88,8 +90,8 @@ public:
     descriptor(const descriptor&) = delete;
     descriptor(descriptor&& other) noexcept {
         auto const tmp = other.descriptor_.load();
-        other.descriptor_ = -1;
-        descriptor_ = tmp;
+        other.descriptor_.store(-1);
+        descriptor_.store(tmp);
     }
 
     descriptor& operator=(const descriptor&) = delete;
@@ -97,8 +99,8 @@ public:
     descriptor& operator=(descriptor&& other) noexcept {
         if (this != &other) {
             auto tmp = other.descriptor_.load();
-            other.descriptor_ = -1;
-            descriptor_ = tmp;
+            other.descriptor_.store(-1);
+            descriptor_.store(tmp);
         }
 
         return *this;
@@ -116,6 +118,12 @@ public:
         return descriptor_.load();
     }
 
+    [[nodiscard]] int32_t set(int32_t descriptor) noexcept {
+        auto const old_descriptor = descriptor_.exchange(descriptor);
+        [[maybe_unused]] auto const result = ::close(old_descriptor);
+        return old_descriptor;
+    }
+
     [[nodiscard]] int32_t duplicate(int32_t other) noexcept;
 
     [[nodiscard]] int32_t duplicate(const descriptor& other) noexcept {
@@ -126,9 +134,8 @@ public:
         return 0;
     }
 
-    void release() noexcept {
-        // Avoid closing the descriptor
-        descriptor_ = -1;
+    [[nodiscard]] int32_t release() noexcept {
+        return descriptor_.exchange(-1);
     }
 
 protected:
@@ -192,10 +199,40 @@ protected:
 };
 
 // Does not close the descriptor when destroyed
+template <class Descriptor> requires std::derived_from<Descriptor, descriptor>
 class weak_descriptor {
-    int32_t descriptor_{-1};
+    Descriptor weak_descriptor_{};
 public:
-    explicit weak_descriptor(const descriptor& desc) : descriptor_(desc.get()) {}
+    weak_descriptor() = default;
+    explicit weak_descriptor(const Descriptor& desc) {
+        [[maybe_unused]] auto const old_descriptor = weak_descriptor_.set(desc.get());
+    }
+
+    explicit weak_descriptor(int32_t descriptor) {
+        [[maybe_unused]] auto const old_descriptor = weak_descriptor_.set(descriptor);
+    }
+
+    weak_descriptor(const weak_descriptor&) = delete;
+    weak_descriptor(weak_descriptor&& other) noexcept {
+        [[maybe_unused]] auto const old_descriptor = weak_descriptor_.set(other.weak_descriptor_.release());
+    }
+
+    weak_descriptor& operator=(const weak_descriptor&) = delete;
+    weak_descriptor& operator=(weak_descriptor&& other) noexcept {
+        if (this != &other) {
+            [[maybe_unused]] auto const old_descriptor = weak_descriptor_.set(other.weak_descriptor_.release());
+        }
+
+        return *this;
+    }
+
+    ~weak_descriptor() {
+        [[maybe_unused]] auto const old_descriptor = weak_descriptor_.release();
+    }
+
+    Descriptor& load() noexcept {
+        return weak_descriptor_;
+    }
 };
 
 // Utility functions

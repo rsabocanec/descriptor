@@ -38,11 +38,11 @@ namespace {
 
         fmt::println("Handling notification from descriptor {}", *mq_desc);
 
-        descriptor::message_queue mq{*mq_desc};
+        descriptor::weak_descriptor<descriptor::message_queue> weak_mq{*mq_desc};
 
         descriptor::message_queue::attributes attr{};
 
-        if (auto const attr_result = mq.get_attributes(attr); attr_result != 0) {
+        if (auto const attr_result = weak_mq.load().get_attributes(attr); attr_result != 0) {
             stop_flag = true;
             fmt::print(fg(  fmt::color::crimson), "Failed to get attributes, with error {} {}",
                             attr_result, descriptor::error_description(attr_result));
@@ -50,7 +50,7 @@ namespace {
         else {
             auto receive_buffer = std::make_unique<uint8_t[]>(attr.max_msg_size_);
 
-            auto [result, count] = mq.read(std::as_writable_bytes(std::span(receive_buffer.get(), attr.max_msg_size_)));
+            auto [result, count] = weak_mq.load().read(std::as_writable_bytes(std::span(receive_buffer.get(), attr.max_msg_size_)));
 
             fmt::println("Received {} bytes:", count);
 
@@ -69,7 +69,7 @@ namespace {
             }
         }
 
-        if (auto const attr_result = mq.get_attributes(attr); attr_result != 0) {
+        if (auto const attr_result = weak_mq.load().get_attributes(attr); attr_result != 0) {
             stop_flag = true;
             fmt::print(fg(  fmt::color::crimson), "Failed to get attributes, with error {} {}",
                             attr_result, descriptor::error_description(attr_result));
@@ -78,7 +78,7 @@ namespace {
             fmt::println("Messages left in the queue: {}", attr.current_msg_count_);
         }
 
-        if (auto const notify_result = mq.notify(incoming_handler); notify_result != 0) {
+        if (auto const notify_result = weak_mq.load().notify(incoming_handler); notify_result != 0) {
             fmt::print( fg(fmt::color::crimson), "Failed to notify message queue {} with result {} {}\n",
                         *mq_desc, notify_result, descriptor::error_description(notify_result));
             stop_flag = true;
@@ -86,8 +86,6 @@ namespace {
         else {
             fmt::println("Successfully set notification handler!");
         }
-
-        mq.release();
 
         fmt::println("Exiting notification handler");
     }

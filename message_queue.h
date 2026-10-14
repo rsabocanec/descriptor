@@ -35,7 +35,6 @@ public:
     };
 
     message_queue() = default;
-    explicit message_queue(int32_t desc) noexcept { descriptor_ = desc;}
     message_queue(const message_queue&) = delete;
     message_queue(message_queue&&) = default;
 
