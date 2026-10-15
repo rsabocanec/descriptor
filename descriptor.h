@@ -114,13 +114,14 @@ public:
         return descriptor_ >= 0;
     }
 
-    [[nodiscard]] int32_t get() const noexcept {
+    [[nodiscard]] int32_t load() const noexcept {
         return descriptor_.load();
     }
 
-    [[nodiscard]] int32_t set(int32_t descriptor) noexcept {
-        auto const old_descriptor = descriptor_.exchange(descriptor);
-        [[maybe_unused]] auto const result = ::close(old_descriptor);
+    [[nodiscard]] int32_t store(int32_t descriptor) noexcept {
+        auto const old_descriptor = load();
+        [[maybe_unused]] auto const result = close();
+        descriptor_.store(descriptor);
         return old_descriptor;
     }
 
@@ -205,22 +206,26 @@ class weak_descriptor {
 public:
     weak_descriptor() = default;
     explicit weak_descriptor(const Descriptor& desc) {
-        [[maybe_unused]] auto const old_descriptor = weak_descriptor_.set(desc.get());
+        [[maybe_unused]] auto const old_descriptor = 
+            weak_descriptor_.store(desc.load());
     }
 
     explicit weak_descriptor(int32_t descriptor) {
-        [[maybe_unused]] auto const old_descriptor = weak_descriptor_.set(descriptor);
+        [[maybe_unused]] auto const old_descriptor = 
+            weak_descriptor_.store(descriptor);
     }
 
     weak_descriptor(const weak_descriptor&) = delete;
     weak_descriptor(weak_descriptor&& other) noexcept {
-        [[maybe_unused]] auto const old_descriptor = weak_descriptor_.set(other.weak_descriptor_.release());
+        [[maybe_unused]] auto const old_descriptor = 
+            weak_descriptor_.store(other.weak_descriptor_.release());
     }
 
     weak_descriptor& operator=(const weak_descriptor&) = delete;
     weak_descriptor& operator=(weak_descriptor&& other) noexcept {
         if (this != &other) {
-            [[maybe_unused]] auto const old_descriptor = weak_descriptor_.set(other.weak_descriptor_.release());
+            [[maybe_unused]] auto const old_descriptor = 
+                weak_descriptor_.store(other.weak_descriptor_.release());
         }
 
         return *this;
