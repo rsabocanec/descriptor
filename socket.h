@@ -24,12 +24,13 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 namespace descriptor {
 
-[[nodiscard]] inline std::tuple<int32_t, std::string_view, uint16_t> parse_ip_address(std::string_view address) noexcept {
-    std::tuple<int32_t, std::string_view, uint16_t> result{EINVAL, {}, 0};
+using expected_parsing_result = std::expected<std::tuple<std::string_view, uint16_t>, std::error_code>;
+
+[[nodiscard]] inline expected_parsing_result parse_ip_address(std::string_view address) noexcept {
 
     auto pos = std::ranges::find(address, ':');
     if (pos == address.cend()) {
-        return result;
+        return std::unexpected(std::make_error_code(std::errc::invalid_argument));
     }
 
     const std::string_view pure_address(address.cbegin(), pos);
@@ -37,10 +38,10 @@ namespace descriptor {
     uint16_t port{};
 
     if (std::from_chars(++pos, address.cend(), port).ec == std::errc{}) {
-        result = {0, pure_address, port};
+        return expected_parsing_result({pure_address, port});
     }
 
-    return result;
+    return std::unexpected(std::make_error_code(std::errc::invalid_argument));
 }
 
 class socket : public descriptor {
@@ -48,18 +49,18 @@ public:
     socket() = default;
     explicit socket(int socket) : descriptor(socket) {}
 
-    [[nodiscard]] std::tuple<int32_t, int32_t> splice(const descriptor& source, std::size_t count, 
-                                                      std::optional<int32_t> offset_in = std::nullopt,
-                                                      [[maybe_unused]] std::optional<int32_t> offset_out = std::nullopt,
-                                                      [[maybe_unused]] uint32_t flags = 0ul) const noexcept final override {
+    [[nodiscard]] expected_result splice(const descriptor& source, std::size_t count, 
+                                         std::optional<int32_t> offset_in = std::nullopt,
+                                         [[maybe_unused]] std::optional<int32_t> offset_out = std::nullopt,
+                                         [[maybe_unused]] uint32_t flags = 0ul) const noexcept final override {
         return splice_impl(source, count, offset_in);
     }
 
     [[nodiscard]] virtual int32_t shutdown() const noexcept;
 
 protected:
-    [[nodiscard]] std::tuple<int32_t, int32_t> splice_impl(const descriptor& source, std::size_t count, 
-                                                           std::optional<int32_t> offset = std::nullopt) const noexcept;
+    [[nodiscard]] expected_result splice_impl(const descriptor& source, std::size_t count, 
+                                              std::optional<int32_t> offset = std::nullopt) const noexcept;
 };
 
 } // descriptor

@@ -27,10 +27,10 @@ public:
 
     [[nodiscard]] int32_t bind(std::string_view address) noexcept final;
 
-    [[nodiscard]] std::tuple<int32_t, int32_t>
+    [[nodiscard]] expected_result
         read_from(std::span<std::byte> buffer, std::string &address) const noexcept final;
 
-    [[nodiscard]] std::tuple<int32_t, int32_t>
+    [[nodiscard]] expected_result
         write_to(std::span<const std::byte> buffer, std::string_view address) const noexcept final;
 
 protected:

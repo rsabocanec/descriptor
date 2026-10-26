@@ -41,9 +41,8 @@ namespace descriptor {
         return 0;
 }
 
-std::tuple<int32_t, int32_t>
+expected_result 
     local_datagram_socket::read_from(std::span<std::byte> buffer, std::string &address) const noexcept {
-    std::tuple<int32_t, int32_t> result {EINVAL, -1};
 
     if (descriptor_.load() != -1) {
         struct sockaddr_un local_address{
@@ -52,7 +51,7 @@ std::tuple<int32_t, int32_t>
 
         socklen_t local_address_length{sizeof(local_address)};
 
-        std::get<1>(result) =
+        auto const result =
             ::recvfrom(descriptor_.load(),
                     static_cast<void*>(buffer.data()),
                     static_cast<std::size_t>(buffer.size()),
@@ -60,22 +59,21 @@ std::tuple<int32_t, int32_t>
                     static_cast<struct sockaddr *>(static_cast<void *>(&local_address)),
                     &local_address_length);
 
-        if (std::get<1>(result) == -1) {
-            std::get<0>(result) = errno;
+        if (result == -1) {
+            return std::unexpected(std::make_error_code(static_cast<std::errc>(errno)));
         }
         else {
-            std::get<0>(result) = 0;
             address = std::string(&local_address.sun_path[0],
-                                local_address_length - sizeof(local_address.sun_family));
+                                  local_address_length - sizeof(local_address.sun_family));
+            return expected_result{static_cast<int32_t>(result)};
         }
     }
 
-    return result;
+    return std::unexpected(std::make_error_code(std::errc::invalid_argument));
 }
 
-std::tuple<int32_t, int32_t>
+expected_result
     local_datagram_socket::write_to(std::span<const std::byte> buffer, std::string_view address) const noexcept {
-    std::tuple<int32_t, int32_t> result {EINVAL, -1};
 
     if (descriptor_.load() != -1) {
         struct sockaddr_un local_address{
@@ -84,7 +82,7 @@ std::tuple<int32_t, int32_t>
 
         ::strncpy(local_address.sun_path, address.data(), address.length());
 
-        std::get<1>(result) =
+        auto const result =
             ::sendto(descriptor_.load(),
                     static_cast<const void*>(buffer.data()),
                     static_cast<std::size_t>(buffer.size()),
@@ -92,9 +90,10 @@ std::tuple<int32_t, int32_t>
                     static_cast<const struct sockaddr *>(static_cast<const void *>(&local_address)),
                     sizeof(local_address.sun_family) + address.length());
 
-        std::get<0>(result) = std::get<1>(result) == -1 ? errno : 0;
+        return result != -1 ? expected_result{static_cast<int32_t>(result)} 
+                            : std::unexpected(std::make_error_code(static_cast<std::errc>(errno)));    
     }
 
-    return result;
+    return std::unexpected(std::make_error_code(std::errc::invalid_argument));
 }
 } // descriptor

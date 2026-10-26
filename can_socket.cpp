@@ -34,8 +34,7 @@ can_socket_frame::can_socket_frame(std::span<const std::byte> buffer) noexcept
     }
 }
 
-std::tuple<int32_t, int32_t> can_socket_frame::as_bytes(std::span<std::byte> buffer) const noexcept {
-    std::tuple<int32_t, int32_t> result{EINVAL, -1};
+expected_result can_socket_frame::as_bytes(std::span<std::byte> buffer) const noexcept {
 
     struct can_frame frame{
         .can_id = header_.uint32_id_ & 0x0FFFFFFFU,
@@ -66,11 +65,11 @@ std::tuple<int32_t, int32_t> can_socket_frame::as_bytes(std::span<std::byte> buf
         std::copy_n(static_cast<const uint8_t*>(static_cast<const void*>(&frame)),
                     sizeof(frame),
                     static_cast<uint8_t*>(static_cast<void*>(buffer.data())));
-        std::get<0>(result) = 0;
-        std::get<1>(result) = sizeof(frame);
+                    
+        return expected_result{static_cast<int32_t>(sizeof(frame))};
     }
 
-    return result;
+    return std::unexpected(std::make_error_code(std::errc::invalid_argument));
 }
 
 int32_t can_socket::create() noexcept {

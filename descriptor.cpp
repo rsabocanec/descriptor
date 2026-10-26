@@ -70,58 +70,56 @@ int32_t descriptor::duplicate(int32_t other) noexcept {
 }
 
 
-std::tuple<int32_t, int32_t> descriptor::read(std::span<std::byte> buffer) const noexcept {
-    std::tuple<int32_t, int32_t> result {EINVAL, -1};
+expected_result descriptor::read(std::span<std::byte> buffer) const noexcept {
 
     if (descriptor_.load() != -1) {
-        std::get<1>(result) =
+        auto const result =
             ::read(descriptor_.load(),
                     static_cast<void*>(buffer.data()),
                     static_cast<std::size_t>(buffer.size()));
 
-        std::get<0>(result) = std::get<1>(result) == -1 ? errno : 0;
+        return result != -1 ? expected_result{result} 
+                            : std::unexpected(std::make_error_code(static_cast<std::errc>(errno)));
     }
 
-    return result;
+    return std::unexpected(std::make_error_code(std::errc::invalid_argument));
 }
 
-std::tuple<int32_t, int32_t> descriptor::write(std::span<const std::byte> buffer) const noexcept {
-    std::tuple<int32_t, int32_t> result {EINVAL, -1};
-
+expected_result descriptor::write(std::span<const std::byte> buffer) const noexcept {
     if (descriptor_.load() != -1) {
-        std::get<1>(result) =
+        auto const result =
             ::write(descriptor_.load(),
                     static_cast<const void*>(buffer.data()),
                     static_cast<std::size_t>(buffer.size()));
 
-        std::get<0>(result) = std::get<1>(result) == -1 ? errno : 0;
+        return result != -1 ? expected_result{result} 
+                            : std::unexpected(std::make_error_code(static_cast<std::errc>(errno)));
     }
 
-    return result;
+    return std::unexpected(std::make_error_code(std::errc::invalid_argument));
 }
 
-std::tuple<int32_t, int32_t> descriptor::splice(const descriptor& source, std::size_t count,
-                                                std::optional<int32_t> offset_in/* = std::nullopt*/,
-                                                std::optional<int32_t> offset_out/* = std::nullopt*/,
-                                                uint32_t flags/* = 0ul*/) const noexcept {
-
-    std::tuple<int32_t, int32_t> result {EINVAL, -1};
+expected_result descriptor::splice(const descriptor& source, std::size_t count,
+                                                           std::optional<int32_t> offset_in/* = std::nullopt*/,
+                                                           std::optional<int32_t> offset_out/* = std::nullopt*/,
+                                                           uint32_t flags/* = 0ul*/) const noexcept {
 
     off_t offset_in_value = offset_in ? static_cast<off_t>(*offset_in) : 0;
     off_t offset_out_value = offset_out ? static_cast<off_t>(*offset_out) : 0;
 
     if (descriptor_.load() != -1) {
-        std::get<1>(result) =
+        auto const result =
             ::copy_file_range(source.descriptor_.load(),
                               offset_in ? &offset_in_value : nullptr,
                               descriptor_.load(),
                               offset_out ? &offset_out_value : nullptr,
                               count, flags);
 
-        std::get<0>(result) = std::get<1>(result) == -1 ? errno : 0;
+        return result != -1 ? expected_result{result} 
+                            : std::unexpected(std::make_error_code(static_cast<std::errc>(errno)));
     }
 
-    return result;
+    return std::unexpected(std::make_error_code(std::errc::invalid_argument));
 }
 
 int32_t descriptor::select(int64_t timeout_nanoseconds) const noexcept {

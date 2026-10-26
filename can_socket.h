@@ -132,21 +132,21 @@ public:
 
 
     template<std::random_access_iterator It>
-    [[nodiscard]] std::tuple<int32_t, int32_t> as_bytes(It first, std::size_t count) const noexcept {
+    [[nodiscard]] expected_result as_bytes(It first, std::size_t count) const noexcept {
         return as_bytes(std::as_writable_bytes(std::span(first, count)));
     }
 
     template<std::random_access_iterator It, class End>
-    [[nodiscard]] std::tuple<int32_t, int32_t> as_bytes(It first, End last) const noexcept {
+    [[nodiscard]] expected_result as_bytes(It first, End last) const noexcept {
         return as_bytes(std::as_writable_bytes(std::span(first, last)));
     }
 
     template<class U, std::size_t N>
-    [[nodiscard]] std::tuple<int32_t, int32_t> as_bytes(std::array<U, N>& arr) const noexcept {
+    [[nodiscard]] expected_result as_bytes(std::array<U, N>& arr) const noexcept {
         return as_bytes(std::as_writable_bytes(std::span(arr)));
     }
 
-    [[nodiscard]] std::tuple<int32_t, int32_t> as_bytes(std::span<std::byte> buffer) const noexcept;
+    [[nodiscard]] expected_result as_bytes(std::span<std::byte> buffer) const noexcept;
 };
 
 class can_socket : public bound_socket {

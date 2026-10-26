@@ -227,21 +227,21 @@ public:
     }
 
     template<std::random_access_iterator It>
-    [[nodiscard]] std::tuple<int32_t, int32_t> read(It first, std::size_t count) const noexcept {
+    [[nodiscard]] expected_result read(It first, std::size_t count) const noexcept {
         return file_.read(first, count);
     }
 
     template<std::random_access_iterator It, class End>
-    [[nodiscard]] std::tuple<int32_t, int32_t> read(It first, End last) const noexcept {
+    [[nodiscard]] expected_result read(It first, End last) const noexcept {
         return file_.read(first, last);
     }
 
     template<class U, std::size_t N>
-    [[nodiscard]] std::tuple<int32_t, int32_t> read(std::array<U, N>& arr) const noexcept {
+    [[nodiscard]] expected_result read(std::array<U, N>& arr) const noexcept {
         return file_.read(arr);
     }
 
-    [[nodiscard]] std::tuple<int32_t, int32_t> read(std::span<std::byte> buffer) const noexcept {
+    [[nodiscard]] expected_result read(std::span<std::byte> buffer) const noexcept {
         return file_.read(buffer);
     }
 
@@ -278,21 +278,21 @@ public:
     }
 
     template<std::random_access_iterator It>
-    [[nodiscard]] std::tuple<int32_t, int32_t> write(It first, std::size_t count) const noexcept {
+    [[nodiscard]] expected_result write(It first, std::size_t count) const noexcept {
         return file_.write(first, count);
     }
 
     template<std::random_access_iterator It, class End>
-    [[nodiscard]] std::tuple<int32_t, int32_t> write(It first, End last) const noexcept {
+    [[nodiscard]] expected_result write(It first, End last) const noexcept {
         return file_.write(first, last);
     }
 
     template<class U, std::size_t N>
-    [[nodiscard]] std::tuple<int32_t, int32_t> write(const std::array<U, N>& arr) const noexcept {
+    [[nodiscard]] expected_result write(const std::array<U, N>& arr) const noexcept {
         return file_.write(arr);
     }
 
-    [[nodiscard]] std::tuple<int32_t, int32_t> write(std::span<const std::byte> buffer) const noexcept {
+    [[nodiscard]] expected_result write(std::span<const std::byte> buffer) const noexcept {
         return file_.write(buffer);
     }
 

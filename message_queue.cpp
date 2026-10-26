@@ -63,27 +63,24 @@ int32_t message_queue::close() noexcept {
     return 0;
 }
 
-std::tuple<int32_t, int32_t> message_queue::read(std::span<std::byte> buffer) const noexcept {
-
-    std::tuple<int32_t, int32_t> result {EINVAL, -1};
+expected_result message_queue::read(std::span<std::byte> buffer) const noexcept {
 
     if (descriptor_.load() != -1) {
         [[maybe_unused]] unsigned int priority{};
-        std::get<1>(result) =
+        auto const result =
             ::mq_receive(descriptor_.load(),
                     static_cast<char*>(static_cast<void*>(buffer.data())),
                     static_cast<std::size_t>(buffer.size()),
                     &priority);
 
-        std::get<0>(result) = std::get<1>(result) == -1 ? errno : 0;
+        return result != -1 ? expected_result{result} 
+                            : std::unexpected(std::make_error_code(static_cast<std::errc>(errno)));
     }
 
-    return result;
+    return std::unexpected(std::make_error_code(std::errc::invalid_argument));
 }
 
-std::tuple<int32_t, int32_t> message_queue::timed_read(std::span<std::byte> buffer, int64_t timeout_nanoseconds) const noexcept {
-
-    std::tuple<int32_t, int32_t> result {EINVAL, -1};
+expected_result message_queue::timed_read(std::span<std::byte> buffer, int64_t timeout_nanoseconds) const noexcept {
 
     if (descriptor_.load() != -1) {
         [[maybe_unused]] unsigned int priority{};
@@ -93,21 +90,20 @@ std::tuple<int32_t, int32_t> message_queue::timed_read(std::span<std::byte> buff
         tm.tv_sec += timeout_nanoseconds / 1'000'000'000;
         tm.tv_nsec += timeout_nanoseconds % 1'000'000'000;
     
-        std::get<1>(result) =
+        auto const result =
             ::mq_timedreceive(descriptor_.load(),
                     static_cast<char*>(static_cast<void*>(buffer.data())),
                     static_cast<std::size_t>(buffer.size()),
                     &priority, &tm);
 
-        std::get<0>(result) = std::get<1>(result) == -1 ? errno : 0;
+        return result != -1 ? expected_result{result} 
+                            : std::unexpected(std::make_error_code(static_cast<std::errc>(errno)));
     }
 
-    return result;
+    return std::unexpected(std::make_error_code(std::errc::invalid_argument));
 }
 
-std::tuple<int32_t, int32_t> message_queue::write(std::span<const std::byte> buffer) const noexcept {
-
-    std::tuple<int32_t, int32_t> result {EINVAL, -1};
+expected_result message_queue::write(std::span<const std::byte> buffer) const noexcept {
 
     if (descriptor_.load() != -1) {
         [[maybe_unused]] const unsigned int priority{};
@@ -118,16 +114,14 @@ std::tuple<int32_t, int32_t> message_queue::write(std::span<const std::byte> buf
                       static_cast<std::size_t>(buffer.size()),
                       priority);
 
-        std::get<0>(result) = send_result == -1 ? errno : 0;
-        std::get<1>(result) = send_result == -1 ? -1 : static_cast<int32_t>(buffer.size());
+        return send_result != -1 ? expected_result{static_cast<int32_t>(buffer.size())} 
+                                 : std::unexpected(std::make_error_code(static_cast<std::errc>(errno)));
     }
 
-    return result;
+    return std::unexpected(std::make_error_code(std::errc::invalid_argument));
 }
 
-std::tuple<int32_t, int32_t> message_queue::timed_write(std::span<const std::byte> buffer, int64_t timeout_nanoseconds) const noexcept {
-
-    std::tuple<int32_t, int32_t> result {EINVAL, -1};
+expected_result message_queue::timed_write(std::span<const std::byte> buffer, int64_t timeout_nanoseconds) const noexcept {
 
     if (descriptor_.load() != -1) {
         [[maybe_unused]] const unsigned int priority{};
@@ -143,11 +137,11 @@ std::tuple<int32_t, int32_t> message_queue::timed_write(std::span<const std::byt
                            static_cast<std::size_t>(buffer.size()),
                            priority, &tm);
 
-        std::get<0>(result) = send_result == -1 ? errno : 0;
-        std::get<1>(result) = send_result == -1 ? -1 : static_cast<int32_t>(buffer.size());
+        return send_result != -1 ? expected_result{static_cast<int32_t>(buffer.size())} 
+                                 : std::unexpected(std::make_error_code(static_cast<std::errc>(errno)));
     }
 
-    return result;
+    return std::unexpected(std::make_error_code(std::errc::invalid_argument));
 }
 
 int32_t message_queue::notify() const noexcept {

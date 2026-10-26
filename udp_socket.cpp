@@ -56,9 +56,8 @@ int32_t udp_socket::bind(std::string_view address, uint16_t port) noexcept {
     return 0;
 }
 
-std::tuple<int32_t, int32_t> udp_socket::read_from(
+expected_result udp_socket::read_from(
         std::span<std::byte> buffer, std::string &address, uint16_t &port) const noexcept {
-    std::tuple<int32_t, int32_t> result {0, -1};
 
     if (descriptor_.load() != -1) {
         struct sockaddr_in peer_address{
@@ -69,7 +68,7 @@ std::tuple<int32_t, int32_t> udp_socket::read_from(
 
         socklen_t peer_address_length = sizeof(peer_address);
 
-        std::get<1>(result) =
+        auto const result =
             ::recvfrom( descriptor_.load(),
                         static_cast<void*>(buffer.data()),
                         static_cast<std::size_t>(buffer.size()),
@@ -77,8 +76,8 @@ std::tuple<int32_t, int32_t> udp_socket::read_from(
                         static_cast<struct sockaddr *>(static_cast<void*>(&peer_address)),
                         &peer_address_length);
 
-        if (std::get<1>(result) == -1) {
-            std::get<0>(result) = errno;
+        if (result == -1) {
+            return std::unexpected(std::make_error_code(static_cast<std::errc>(errno)));
         }
         else {
             std::array<char, INET_ADDRSTRLEN> input{};
@@ -87,20 +86,20 @@ std::tuple<int32_t, int32_t> udp_socket::read_from(
 
             address = input.data();
             port = ::ntohs(peer_address.sin_port);
+
+            return expected_result{static_cast<int32_t>(result)};
         }
     }
 
-    return result;
+    return std::unexpected(std::make_error_code(std::errc::invalid_argument));
 }
 
-std::tuple<int32_t, int32_t> udp_socket::write_to(
+expected_result udp_socket::write_to(
         std::span<const std::byte> buffer, std::string_view address, uint16_t port) const noexcept {
-    std::tuple<int32_t, int32_t> result {EINVAL, -1};
     
     auto const descriptor = ::socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (descriptor == -1) {
-        std::get<0>(result) = errno;
-        return result;   
+        return std::unexpected(std::make_error_code(std::errc::invalid_argument));
     }
 
     const struct sockaddr_in peer_address{
@@ -109,7 +108,7 @@ std::tuple<int32_t, int32_t> udp_socket::write_to(
         .sin_addr = {.s_addr = ::inet_addr(address.data())}
     };
 
-    std::get<1>(result) =
+    auto const result =
         ::sendto(descriptor,
                 static_cast<const void*>(buffer.data()),
                 static_cast<std::size_t>(buffer.size()),
@@ -117,8 +116,7 @@ std::tuple<int32_t, int32_t> udp_socket::write_to(
                 static_cast<const struct sockaddr *>(static_cast<const void *>(&peer_address)),
                 sizeof(peer_address));
 
-    std::get<0>(result) = std::get<1>(result) == -1 ? errno : 0;
-
-    return result;
+    return result != -1 ? expected_result{result} 
+                        : std::unexpected(std::make_error_code(static_cast<std::errc>(errno)));
 }
 } // descriptor

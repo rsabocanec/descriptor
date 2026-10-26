@@ -26,13 +26,12 @@ public:
     tcp_socket() = default;
 
     [[nodiscard]] int32_t bind(std::string_view address) noexcept final {
-        auto const [result, pure_address, port] = parse_ip_address(address);
-
-        if (result != 0) {
-            return result;
+        auto const result = parse_ip_address(address);
+        if (!result) {
+            return result.error().value();
         }
 
-        return bind(pure_address, port);
+        return bind(std::get<0>(result.value()), std::get<1>(result.value()));
     }
 
     [[nodiscard]] int32_t bind(std::string_view address, uint16_t port) noexcept;
@@ -40,13 +39,12 @@ public:
     [[nodiscard]] std::expected<acceptor, int32_t> accept() const noexcept final;
 
     [[nodiscard]] int32_t connect(std::string_view address) noexcept final {
-        auto const [result, pure_address, port] = parse_ip_address(address);
-
-        if (result != 0) {
-            return result;
+        auto const result = parse_ip_address(address);
+        if (!result) {
+            return result.error().value();
         }
 
-        return connect(pure_address, port);
+        return connect(std::get<0>(result.value()), std::get<1>(result.value()));
     }
 
     [[nodiscard]] int32_t connect(std::string_view address, uint16_t port) noexcept;
