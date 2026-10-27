@@ -41,15 +41,15 @@ public:
     message_queue& operator=(const message_queue&) = delete;
     message_queue& operator=(message_queue&&) = default;
 
-    [[nodiscard]] int32_t open( std::string_view name,
-                                int32_t flags = open_flags::read_write
-                                              | open_flags::create,
-                                int32_t mode  = open_mode::read_by_owner
-                                              | open_mode::write_by_owner
-                                              | open_mode::read_by_group
-                                              | open_mode::read_by_others) noexcept final override;
+    [[nodiscard]] std::error_code open( std::string_view name,
+                                        int32_t flags = open_flags::read_write
+                                                      | open_flags::create,
+                                        int32_t mode  = open_mode::read_by_owner
+                                                      | open_mode::write_by_owner
+                                                      | open_mode::read_by_group
+                                                      | open_mode::read_by_others) noexcept final override;
 
-    [[nodiscard]] int32_t close() noexcept final override;
+    [[nodiscard]] std::error_code close() noexcept final override;
 
     [[nodiscard]] expected_result read(std::span<std::byte> buffer) const noexcept final override;
 
@@ -95,12 +95,12 @@ public:
         return timed_write(buffer, std::chrono::duration_cast<std::chrono::nanoseconds>(timeout).count());
     }
 
-    int32_t notify() const noexcept;
-    int32_t notify(int32_t signal_number) const noexcept;
-    int32_t notify(std::function<void(std::unique_ptr<int32_t> ptr)> handler) const noexcept;
+    [[nodiscard]] std::error_code notify() const noexcept;
+    [[nodiscard]] std::error_code notify(int32_t signal_number) const noexcept;
+    [[nodiscard]] std::error_code notify(std::function<void(std::unique_ptr<int32_t> ptr)> handler) const noexcept;
 
-    int32_t get_attributes(attributes &attr) const noexcept;
-    int32_t set_attributes(const attributes &attr, std::optional<attributes> old_attr = std::nullopt) const noexcept;
+    [[nodiscard]] std::error_code get_attributes(attributes &attr) const noexcept;
+    [[nodiscard]] std::error_code set_attributes(const attributes &attr, std::optional<attributes> old_attr = std::nullopt) const noexcept;
 protected:
     [[nodiscard]] expected_result timed_read(std::span<std::byte> buffer, int64_t timeout_nanoseconds) const noexcept;
     [[nodiscard]] expected_result timed_write(std::span<const std::byte> buffer, int64_t timeout_nanoseconds) const noexcept;

@@ -7,12 +7,12 @@
 #include <limits.h>
 
 namespace descriptor {
-int32_t message_queue::open( std::string_view name, int32_t flags, int32_t mode) noexcept {
+std::error_code message_queue::open( std::string_view name, int32_t flags, int32_t mode) noexcept {
     if (descriptor_.load() != -1) {
         if (name == name_) {
-            return 0; // Already opened
+            return {}; // Already opened
         }
-        else if (auto const result = close(); result != 0) {
+        else if (auto const result = close()) {
             return result;
         }
     }
@@ -39,28 +39,28 @@ int32_t message_queue::open( std::string_view name, int32_t flags, int32_t mode)
     descriptor_ = ::mq_open(name_.c_str(), flags, mode, nullptr);
 
     if (descriptor_.load() == -1) {
-        auto const result = errno;
+        auto const result = std::make_error_code(static_cast<std::errc>(errno));
         name_.clear();
         return result;
     }
 
-    return 0;
+    return {};
 }
 
-int32_t message_queue::close() noexcept {
+std::error_code message_queue::close() noexcept {
     if (descriptor_ != -1) {
         if (::mq_close(descriptor_) == -1) {
-            return errno;
+            return std::make_error_code(static_cast<std::errc>(errno));
         }
     }
 
     if (!name_.empty()) {
         if (::mq_unlink(name_.c_str()) == -1) {
-            return errno;
+            return std::make_error_code(static_cast<std::errc>(errno));
         }
     }
 
-    return 0;
+    return {};
 }
 
 expected_result message_queue::read(std::span<std::byte> buffer) const noexcept {
@@ -77,7 +77,7 @@ expected_result message_queue::read(std::span<std::byte> buffer) const noexcept 
                             : std::unexpected(std::make_error_code(static_cast<std::errc>(errno)));
     }
 
-    return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+    return std::unexpected(std::make_error_code(std::errc::bad_file_descriptor));
 }
 
 expected_result message_queue::timed_read(std::span<std::byte> buffer, int64_t timeout_nanoseconds) const noexcept {
@@ -100,7 +100,7 @@ expected_result message_queue::timed_read(std::span<std::byte> buffer, int64_t t
                             : std::unexpected(std::make_error_code(static_cast<std::errc>(errno)));
     }
 
-    return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+    return std::unexpected(std::make_error_code(std::errc::bad_file_descriptor));
 }
 
 expected_result message_queue::write(std::span<const std::byte> buffer) const noexcept {
@@ -118,7 +118,7 @@ expected_result message_queue::write(std::span<const std::byte> buffer) const no
                                  : std::unexpected(std::make_error_code(static_cast<std::errc>(errno)));
     }
 
-    return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+    return std::unexpected(std::make_error_code(std::errc::bad_file_descriptor));
 }
 
 expected_result message_queue::timed_write(std::span<const std::byte> buffer, int64_t timeout_nanoseconds) const noexcept {
@@ -141,12 +141,12 @@ expected_result message_queue::timed_write(std::span<const std::byte> buffer, in
                                  : std::unexpected(std::make_error_code(static_cast<std::errc>(errno)));
     }
 
-    return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+    return std::unexpected(std::make_error_code(std::errc::bad_file_descriptor));
 }
 
-int32_t message_queue::notify() const noexcept {
+std::error_code message_queue::notify() const noexcept {
     if (descriptor_ == -1) {
-        return EINVAL;
+        return std::make_error_code(std::errc::bad_file_descriptor);
     }
 
     const struct sigevent se {
@@ -154,15 +154,15 @@ int32_t message_queue::notify() const noexcept {
     };
 
     if (::mq_notify(descriptor_, &se) == -1) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
-    return 0;
+    return {};
 }
 
-int32_t message_queue::notify(int32_t signal_number) const noexcept {
+std::error_code message_queue::notify(int32_t signal_number) const noexcept {
     if (descriptor_ == -1) {
-        return EINVAL;
+        return std::make_error_code(std::errc::bad_file_descriptor);
     }
 
     const struct sigevent se {
@@ -171,15 +171,15 @@ int32_t message_queue::notify(int32_t signal_number) const noexcept {
     };
 
     if (::mq_notify(descriptor_, &se) == -1) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
-    return 0;
+    return {};
 }
 
-int32_t message_queue::notify(std::function<void(std::unique_ptr<int32_t> ptr)> handler) const noexcept {
+std::error_code message_queue::notify(std::function<void(std::unique_ptr<int32_t> ptr)> handler) const noexcept {
     if (descriptor_ == -1) {
-        return EINVAL;
+        return std::make_error_code(std::errc::bad_file_descriptor);
     }
 
     const union sigval sv {
@@ -198,22 +198,22 @@ int32_t message_queue::notify(std::function<void(std::unique_ptr<int32_t> ptr)> 
     se.sigev_notify_attributes = nullptr;
 
     if (::mq_notify(descriptor_, &se) == -1) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
-    return 0;
+    return {};
 }
 
 
-int32_t message_queue::get_attributes(attributes &attr) const noexcept {
+std::error_code message_queue::get_attributes(attributes &attr) const noexcept {
     if (descriptor_ == -1) {
-        return EINVAL;
+        return std::make_error_code(std::errc::bad_file_descriptor);
     }
 
     mq_attr mqa {};
 
     if (::mq_getattr(descriptor_, &mqa) == -1) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
     attr.flags_ = mqa.mq_flags;
@@ -221,13 +221,13 @@ int32_t message_queue::get_attributes(attributes &attr) const noexcept {
     attr.max_msg_size_ = mqa.mq_msgsize;
     attr.current_msg_count_ = mqa.mq_curmsgs;
 
-    return 0;
+    return {};
 }
 
-int32_t message_queue::set_attributes(const attributes &attr, std::optional<attributes> old_attr) const noexcept {
+std::error_code message_queue::set_attributes(const attributes &attr, std::optional<attributes> old_attr) const noexcept {
 
     if (descriptor_ == -1) {
-        return EINVAL;
+        return std::make_error_code(std::errc::bad_file_descriptor);
     }
 
     mq_attr mqa {
@@ -240,7 +240,7 @@ int32_t message_queue::set_attributes(const attributes &attr, std::optional<attr
     mq_attr old_mqa {};
 
     if (::mq_setattr(descriptor_, &mqa, &old_mqa) == -1) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
     if (old_attr) {
@@ -249,6 +249,6 @@ int32_t message_queue::set_attributes(const attributes &attr, std::optional<attr
         old_attr->max_msg_size_ = old_mqa.mq_msgsize;
         old_attr->current_msg_count_ = old_mqa.mq_curmsgs;
     }
-    return 0;
+    return {};
 }
 }

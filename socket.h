@@ -56,7 +56,7 @@ public:
         return splice_impl(source, count, offset_in);
     }
 
-    [[nodiscard]] virtual int32_t shutdown() const noexcept;
+    [[nodiscard]] virtual std::error_code shutdown() const noexcept;
 
 protected:
     [[nodiscard]] expected_result splice_impl(const descriptor& source, std::size_t count, 

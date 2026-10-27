@@ -60,46 +60,44 @@ auto main(int argc, char **argv)->int {
             logger->info("Server listening on {}:{}", server_address, server_port);
             
             auto accept_result = server.accept();
+            
             while (accept_result.has_value()) {
                 std::thread([logger](descriptor::acceptor&& acceptor) {
                     logger->info("New connection from {}:{}", acceptor.peer(), acceptor.peer_port());
 
                     std::array<char, 24> request{};
 
-                    int32_t read_error{};
-                    int32_t bytes_read{};
-
                     std::ofstream ofs{"/tmp/received.txt"};
 
-                    do {
-                        auto const read_result = acceptor.read(request);
-                        read_error = std::get<0>(read_result);
-                        bytes_read = std::get<1>(read_result);
+                    descriptor::expected_result read_result{};
 
-                        if (read_error != 0) {
-                            logger->error("Receive failed; {} '{}'", read_error, descriptor::error_description(read_error));
+                    do {
+                        read_result = acceptor.read(request);
+
+                        if (!read_result) {
+                            logger->error("Receive failed; {} '{}'", read_result.error().value(), read_result.error().message());
                         }
-                        else if (bytes_read == 0) {
+                        else if (read_result.value() == 0) {
                             logger->info("Connection from {}:{} has been closed!", acceptor.peer(), acceptor.peer_port());
                         }
                         else {
-                            const std::string_view response(request.cbegin(), bytes_read);
+                            const std::string_view response(request.cbegin(), read_result.value());
                             ofs << response;
                             
                             logger->info("Received '{}'", response);
 #if 0
-                            auto const [write_result, bytes_written] =
-                                acceptor.write(response.cbegin(), response.cend());
+                            auto const write_result = acceptor.write(response.cbegin(), response.cend());
 
-                            if (write_result != 0) {
-                                logger->error("Send failed; {} '{}'", write_result, descriptor::error_description(write_result));
+                            if (!write_result) {
+                                logger->error("Send failed; {} '{}'", 
+                                    write_result.error().value(), write_result.error().message());
                             }
                             else {
                                 logger->info("Sent '{}'", response);
                             }
 #endif                            
                         }
-                    } while (read_error == 0 && bytes_read > 0);
+                    } while (read_result.has_value() && read_result.value() > 0);
 
                     logger->info("Shutting down the acceptor!");
 
@@ -112,7 +110,8 @@ auto main(int argc, char **argv)->int {
                 accept_result = server.accept();
             }
 
-            logger->error("Accept failed; {} '{}'", accept_result.error(), descriptor::error_description(accept_result.error()));
+            logger->error("Accept failed; {} '{}'", 
+                accept_result.error().value(), accept_result.error().message());
         }
     }
 

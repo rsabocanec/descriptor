@@ -124,14 +124,14 @@ public:
         return old_descriptor;
     }
 
-    [[nodiscard]] int32_t duplicate(int32_t other) noexcept;
+    [[nodiscard]] std::error_code duplicate(int32_t other) noexcept;
 
-    [[nodiscard]] int32_t duplicate(const descriptor& other) noexcept {
+    [[nodiscard]] std::error_code duplicate(const descriptor& other) noexcept {
         if (this != &other) {
             return duplicate(other.descriptor_.load());
         }
 
-        return 0;
+        return {};
     }
 
     [[nodiscard]] int32_t release() noexcept {
@@ -139,10 +139,10 @@ public:
     }
 
 protected:
-    [[nodiscard]] virtual int32_t create() noexcept = 0;
+    [[nodiscard]] virtual std::error_code create() noexcept = 0;
 
 public:
-    [[nodiscard]] virtual int32_t close() noexcept;
+    [[nodiscard]] virtual std::error_code close() noexcept;
 
     template<std::random_access_iterator It>
     [[nodiscard]] expected_result read(It first, std::size_t count) const noexcept {
@@ -184,18 +184,18 @@ public:
                                                  uint32_t flags = 0ul) const noexcept;
 
     template <typename Period>
-    [[nodiscard]] int32_t select(duration<Period> &&timeout) const noexcept {
+    [[nodiscard]] std::error_code select(duration<Period> &&timeout) const noexcept {
         return select(std::chrono::duration_cast<std::chrono::nanoseconds>(timeout).count());
     }
 
     template <typename Period>
-    [[nodiscard]] int32_t poll(duration<Period> &&timeout, polled_state &state) const noexcept {
+    [[nodiscard]] std::error_code poll(duration<Period> &&timeout, polled_state &state) const noexcept {
         return poll(std::chrono::duration_cast<std::chrono::nanoseconds>(timeout).count(), state);
     }
 
 protected:
-    [[nodiscard]] int32_t select(int64_t timeout_nanoseconds) const noexcept;
-    [[nodiscard]] int32_t poll(int64_t timeout_nanoseconds, polled_state &state) const noexcept;
+    [[nodiscard]] std::error_code select(int64_t timeout_nanoseconds) const noexcept;
+    [[nodiscard]] std::error_code poll(int64_t timeout_nanoseconds, polled_state &state) const noexcept;
 };
 
 // Does not close the descriptor when destroyed
@@ -240,11 +240,9 @@ public:
 };
 
 // Utility functions
-[[nodiscard]] std::string_view error_description(int32_t error_code) noexcept;
-
-void report_error(std::ostream& os, int32_t error_num, std::string_view prefix = {},
+void report_error(std::ostream& os, std::error_code&& ec, std::string_view prefix = {},
     std::source_location location = std::source_location::current()) noexcept;
 
-[[nodiscard]] int32_t unlink(std::string_view filename) noexcept;
+[[nodiscard]] std::error_code unlink(std::string_view filename) noexcept;
 }
 #endif //DESCRIPTOR_DESCRIPTOR_H

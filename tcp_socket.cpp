@@ -4,31 +4,30 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <unistd.h>
 
 namespace descriptor {
 
-int32_t tcp_socket::create() noexcept {
+std::error_code tcp_socket::create() noexcept {
     auto result = close();
-    if (result == 0) {
+    if (!result) {
         descriptor_ = ::socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
         if (descriptor_.load() == -1) {
-            result = errno;
+            result = std::make_error_code(static_cast<std::errc>(errno));
         }
     }
 
     return result;
 }
 
-int32_t tcp_socket::bind(std::string_view address, uint16_t port) noexcept {
+std::error_code tcp_socket::bind(std::string_view address, uint16_t port) noexcept {
     if (descriptor_.load() == -1) {
-        if (auto const result = create(); result != 0) {
+        if (auto const result = create()) {
             return result;
         }
     }
 
     if (port == 0) {
-        return EINVAL;
+        return std::make_error_code(std::errc::invalid_argument);
     }
 
     struct sockaddr_in server_address{
@@ -38,22 +37,22 @@ int32_t tcp_socket::bind(std::string_view address, uint16_t port) noexcept {
 
     if (!address.empty()) {
         if (::inet_pton(AF_INET, address.data(), &server_address.sin_addr) == -1) {
-            return errno;
+            return std::make_error_code(static_cast<std::errc>(errno));
         }
     }
 
     if (::bind(descriptor_.load(),
                     static_cast<const struct sockaddr *>(static_cast<const void*>(&server_address)),
                     sizeof(server_address)) == -1) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
-    return 0;
+    return std::error_code{};
 }
 
-std::expected<acceptor, int32_t> tcp_socket::accept() const noexcept {
+std::expected<acceptor, std::error_code> tcp_socket::accept() const noexcept {
     if (descriptor_.load() == -1) {
-        return std::unexpected(-1);
+        return std::unexpected(std::make_error_code(std::errc::bad_file_descriptor));
     }
 
     struct sockaddr_in client_address{};
@@ -64,7 +63,7 @@ std::expected<acceptor, int32_t> tcp_socket::accept() const noexcept {
             static_cast<sockaddr *>(static_cast<void *>(&client_address)), &client_address_length);
 
     if (result == -1) {
-        return std::unexpected(errno);
+        return std::unexpected(std::make_error_code(static_cast<std::errc>(errno)));
     }
 
     std::array<char, INET_ADDRSTRLEN> buffer{};
@@ -76,33 +75,33 @@ std::expected<acceptor, int32_t> tcp_socket::accept() const noexcept {
     return acceptor{result, std::move(peer_address), ::ntohs(client_address.sin_port)};
 }
 
-int32_t tcp_socket::connect(std::string_view address, uint16_t port) noexcept {
+std::error_code tcp_socket::connect(std::string_view address, uint16_t port) noexcept {
     if (descriptor_.load() == -1) {
-        if (auto const result = create(); result != 0) {
+        if (auto const result = create()) {
             return result;
         }
     }
 
     if (address.empty()) {
-        return EINVAL;
+        return std::make_error_code(std::errc::invalid_argument);
     }
 
     if (port == 0) {
-        return EINVAL;
+        return std::make_error_code(std::errc::invalid_argument);
     }
 
     struct sockaddr_in server_address{.sin_family = AF_INET, .sin_port = ::htons(port)};
 
     if (::inet_pton(AF_INET, address.data(), &server_address.sin_addr) == -1) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
     if (::connect(descriptor_.load(),
                     static_cast<const struct sockaddr *>(static_cast<const void*>(&server_address)),
                     sizeof(server_address)) == -1) {
-        return errno;
-                    }
+        return std::make_error_code(static_cast<std::errc>(errno));
+    }
 
-    return 0;
+    return {};
 }
 } // descriptor

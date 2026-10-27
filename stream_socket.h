@@ -60,8 +60,8 @@ public:
     }
 
 protected:    
-    [[nodiscard]] int32_t create() noexcept final {
-        return 0;
+    [[nodiscard]] std::error_code create() noexcept final {
+        return {};
     }
 };
 
@@ -69,13 +69,13 @@ class stream_socket : public bound_socket {
 public:
     stream_socket() = default;
 
-    [[nodiscard]] int32_t listen(int32_t max_connections = -1) const noexcept;
+    [[nodiscard]] std::error_code listen(int32_t max_connections = -1) const noexcept;
 
-    [[nodiscard]] virtual std::expected<acceptor, int32_t> accept() const noexcept = 0;
+    [[nodiscard]] virtual std::expected<acceptor, std::error_code> accept() const noexcept = 0;
 
-    [[nodiscard]] virtual int32_t connect(std::string_view address) noexcept = 0;
+    [[nodiscard]] virtual std::error_code connect(std::string_view address) noexcept = 0;
 
-    [[nodiscard]] int32_t disconnect() noexcept;
+    [[nodiscard]] std::error_code disconnect() noexcept;
 };
 
 } // descriptor

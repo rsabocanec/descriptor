@@ -38,8 +38,8 @@ auto main(int argc, char** argv) -> int {
     fmt::print(fg(fmt::color::orange), "Timer example #2\n");
     descriptor::timer t;
 
-    std::promise<int32_t> promise{};
-    std::future<int32_t> future = promise.get_future();
+    std::promise<std::errc> promise{};
+    std::future<std::errc> future = promise.get_future();
 
     t.arm(1s, std::move(promise), []() {
         static int32_t counter = 0;
@@ -81,8 +81,8 @@ auto main(int argc, char** argv) -> int {
     fmt::print(fg(fmt::color::orange), "Deadline example\n");
     descriptor::deadline dl;
 
-    std::promise<int32_t> promise{};
-    std::future<int32_t> future = promise.get_future();
+    std::promise<std::errc> promise{};
+    std::future<std::errc> future = promise.get_future();
 
     dl.arm(2s, std::move(promise), []() {
         static int32_t counter = 0;

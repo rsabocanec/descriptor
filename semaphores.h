@@ -20,6 +20,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <string>
 #include <string_view>
 #include <atomic>
+#include <system_error>
 
 #include <semaphore.h>
 
@@ -39,13 +40,13 @@ public:
 
     virtual ~semaphore() = default;
 
-    [[nodiscard]] int32_t wait() noexcept;
-    [[nodiscard]] int32_t try_wait() noexcept;
+    [[nodiscard]] std::error_code wait() noexcept;
+    [[nodiscard]] std::error_code try_wait() noexcept;
 
-    [[nodiscard]] int32_t post() noexcept;
+    [[nodiscard]] std::error_code post() noexcept;
 
-    [[nodiscard]] virtual int32_t open(std::string_view name, uint32_t initial_value = 0ul) noexcept = 0;
-    [[nodiscard]] virtual int32_t close() noexcept = 0;
+    [[nodiscard]] virtual std::error_code open(std::string_view name, uint32_t initial_value = 0ul) noexcept = 0;
+    [[nodiscard]] virtual std::error_code close() noexcept = 0;
 };
 
 class named_semaphore : public semaphore {
@@ -54,8 +55,8 @@ public:
         [[maybe_unused]] auto const result = close();
     }
 
-    [[nodiscard]] int32_t open(std::string_view name, uint32_t initial_value = 0ul) noexcept final override;
-    [[nodiscard]] int32_t close() noexcept final override;
+    [[nodiscard]] std::error_code open(std::string_view name, uint32_t initial_value = 0ul) noexcept final override;
+    [[nodiscard]] std::error_code close() noexcept final override;
 };
 
 class unnamed_semaphore : public semaphore {
@@ -66,14 +67,14 @@ public:
 
     // name represents the name of the shared memory object that holds the semaphore, for process-shared semaphores
     // If name is nullptr, the semaphore is process-local and does not need to be named.
-    [[nodiscard]] int32_t open(std::string_view name, uint32_t initial_value = 0ul) noexcept final override {
+    [[nodiscard]] std::error_code open(std::string_view name, uint32_t initial_value = 0ul) noexcept final override {
         return init(name, initial_value);
     }
 
-    [[nodiscard]] int32_t close() noexcept final override;
+    [[nodiscard]] std::error_code close() noexcept final override;
 
 protected:
-    [[nodiscard]] int32_t init(std::string_view name, uint32_t initial_value) noexcept;
+    [[nodiscard]] std::error_code init(std::string_view name, uint32_t initial_value) noexcept;
 };
 }
 #endif //DESCRIPTOR_SEMAPHORES_H

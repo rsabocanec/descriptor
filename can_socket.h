@@ -101,7 +101,9 @@ public:
     auto operator<=>(const can_socket_frame&) const = default;
 
     [[nodiscard]] auto header() const noexcept { return header_; }
+
     void header(uint32_t uint32_id) noexcept { header_.uint32_id_ = uint32_id; }
+
     void header(uint32_t msg_num, uint32_t msg_id, uint32_t dest, uint32_t src, uint32_t msg_type) noexcept {
         can_header header{};
         header.bitfield_id_ = {
@@ -153,10 +155,10 @@ class can_socket : public bound_socket {
 public:
     can_socket() = default;
 
-    [[nodiscard]] int32_t bind(std::string_view address) noexcept final;
+    [[nodiscard]] std::error_code bind(std::string_view address) noexcept final;
     
 protected:
-    [[nodiscard]] int32_t create() noexcept final;
+    [[nodiscard]] std::error_code create() noexcept final;
 };
 
 } // descriptor

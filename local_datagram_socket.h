@@ -25,7 +25,7 @@ class local_datagram_socket : public datagram_socket {
 public:
     local_datagram_socket() = default;
 
-    [[nodiscard]] int32_t bind(std::string_view address) noexcept final;
+    [[nodiscard]] std::error_code bind(std::string_view address) noexcept final;
 
     [[nodiscard]] expected_result
         read_from(std::span<std::byte> buffer, std::string &address) const noexcept final;
@@ -34,7 +34,7 @@ public:
         write_to(std::span<const std::byte> buffer, std::string_view address) const noexcept final;
 
 protected:
-    [[nodiscard]] int32_t create() noexcept final;
+    [[nodiscard]] std::error_code create() noexcept final;
 };
 
 } // descriptor

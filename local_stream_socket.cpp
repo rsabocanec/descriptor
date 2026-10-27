@@ -5,28 +5,27 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <unistd.h>
 
 namespace descriptor {
-int32_t local_stream_socket::create() noexcept {
+std::error_code local_stream_socket::create() noexcept {
     auto result = close();
-    if (result == 0) {
+    if (!result) {
         descriptor_ = ::socket(AF_UNIX, SOCK_STREAM, 0);
         if (descriptor_.load() == -1) {
-            result = errno;
+            result = std::make_error_code(static_cast<std::errc>(errno));
         }
     }
 
     return result;
 }
 
-int32_t local_stream_socket::bind(std::string_view address) noexcept {
+std::error_code local_stream_socket::bind(std::string_view address) noexcept {
     if (address.empty()) {
-        return EINVAL;
+        return std::make_error_code(std::errc::invalid_argument);
     }
 
     if (descriptor_.load() == -1) {
-        if (auto const result = create(); result != 0) {
+        if (auto const result = create()) {
             return result;
         }
     }
@@ -38,15 +37,15 @@ int32_t local_stream_socket::bind(std::string_view address) noexcept {
     if (::bind(descriptor_.load(),
                     static_cast<const struct sockaddr *>(static_cast<const void*>(&local_address)),
                     sizeof(local_address)) == -1) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
                     }
 
-    return 0;
+    return {};
 }
 
-std::expected<acceptor, int32_t> local_stream_socket::accept() const noexcept {
+std::expected<acceptor, std::error_code> local_stream_socket::accept() const noexcept {
     if (descriptor_.load() == -1) {
-        return std::unexpected(-1);
+        return std::unexpected(std::make_error_code(std::errc::bad_file_descriptor));
     }
 
     struct sockaddr_un client_address{
@@ -60,25 +59,21 @@ std::expected<acceptor, int32_t> local_stream_socket::accept() const noexcept {
             static_cast<sockaddr *>(static_cast<void *>(&client_address)), &client_address_length);
 
     if (result == -1) {
-        return std::unexpected(errno);
+        return std::unexpected(std::make_error_code(static_cast<std::errc>(errno)));
     }
 
     return acceptor{result};
 }
 
-int32_t local_stream_socket::connect(std::string_view address) noexcept {
+std::error_code local_stream_socket::connect(std::string_view address) noexcept {
     if (address.empty()) {
-        return EINVAL;
+        return std::make_error_code(std::errc::invalid_argument);
     }
 
     if (descriptor_.load() == -1) {
-        if (auto const result = create(); result != 0) {
+        if (auto const result = create()) {
             return result;
         }
-    }
-
-    if (address.empty()) {
-        return EINVAL;
     }
 
     struct sockaddr_un local_address{};
@@ -88,9 +83,9 @@ int32_t local_stream_socket::connect(std::string_view address) noexcept {
     if (::connect(descriptor_.load(),
                     static_cast<const struct sockaddr *>(static_cast<const void*>(&local_address)),
                     sizeof(local_address)) == -1) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
-    return 0;
+    return {};
 }
 } // descriptor

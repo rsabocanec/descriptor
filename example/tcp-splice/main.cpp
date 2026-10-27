@@ -66,13 +66,13 @@ auto main(int argc, char** argv)->int {
         logger->error("Connect to {}:{} failed; {}", address, port, descriptor::error_description(result));
     }
     else {
-        auto const [splice_result, bytes_spliced] = client.splice(file, file.size());
+        auto const splice_result = client.splice(file, file.size());
 
-        if (splice_result != 0) {
-            logger->error("Splice failed; {}", descriptor::error_description(splice_result));
+        if (!splice_result) {
+            logger->error("Splice failed; {}", splice_result.error().message());
         }
         else {
-            logger->info("Spliced {} bytes from file {} to TCP socket {}:{}", bytes_spliced, filename, address, port);
+            logger->info("Spliced {} bytes from file {} to TCP socket {}:{}", splice_result.value(), filename, address, port);
         }
 
         fmt::print(fg(fmt::color::green), "\nDisconnecting!\n");

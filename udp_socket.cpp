@@ -9,30 +9,30 @@
 
 namespace descriptor {
 
-int32_t udp_socket::create() noexcept {
+std::error_code udp_socket::create() noexcept {
     if (descriptor_.load() == -1) {
-        if (auto const result = close(); result != 0) {
+        if (auto const result = close()) {
             return result;
         }
     }
 
     descriptor_ = ::socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (descriptor_.load() == -1) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
-    return 0;
+    return {};
 }
 
-int32_t udp_socket::bind(std::string_view address, uint16_t port) noexcept {
+std::error_code udp_socket::bind(std::string_view address, uint16_t port) noexcept {
     if (descriptor_.load() == -1) {
-        if (auto const result = create(); result != 0) {
+        if (auto const result = create()) {
             return result;
         }
     }
 
     if (port == 0) {
-        return EINVAL;
+        return std::make_error_code(std::errc::invalid_argument);
     }
 
     struct sockaddr_in server_address{
@@ -43,17 +43,17 @@ int32_t udp_socket::bind(std::string_view address, uint16_t port) noexcept {
 
     if (!address.empty()) {
         if (::inet_pton(AF_INET, address.data(), &server_address.sin_addr) == -1) {
-            return errno;
+            return std::make_error_code(static_cast<std::errc>(errno));
         }
     }
 
     if (::bind( descriptor_.load(),
                 static_cast<const struct sockaddr *>(static_cast<const void*>(&server_address)),
                 sizeof(server_address)) == -1) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
-    return 0;
+    return {};
 }
 
 expected_result udp_socket::read_from(
@@ -91,7 +91,7 @@ expected_result udp_socket::read_from(
         }
     }
 
-    return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+    return std::unexpected(std::make_error_code(std::errc::bad_file_descriptor));
 }
 
 expected_result udp_socket::write_to(
@@ -99,7 +99,7 @@ expected_result udp_socket::write_to(
     
     auto const descriptor = ::socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (descriptor == -1) {
-        return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+        return std::unexpected(std::make_error_code(std::errc::bad_file_descriptor));
     }
 
     const struct sockaddr_in peer_address{

@@ -52,27 +52,27 @@ auto main(int argc, char **argv)->int {
         uint16_t receive_port{};
 
         {
-        auto [result, count] =
+        auto const result =
             server.read_from(buffer, receive_address, receive_port);
 
-        if (result != 0) {
+        if (!result) {
             logger->error("Failed to receive from {}:{} with error {} '{}'", 
-                receive_address, receive_port, result, descriptor::error_description(result));
+                receive_address, receive_port, result.error().value(), result.error().message());
             break;
         }
         else {
-            request = std::string(static_cast<const char*>(static_cast<const void*>(buffer.data())), count);
+            request = std::string(static_cast<const char*>(static_cast<const void*>(buffer.data())), result.value());
             logger->info("Received {} from {}:{}", request, receive_address, receive_port);
             fmt::print(fg(fmt::color::light_green), "Received {}\n", request);
         }
         }
         {
-        auto [result, count] =
-            server.write_to(request.cbegin(), request.cend(),receive_address, receive_port);
+        auto const result =
+            server.write_to(request.cbegin(), request.cend(), receive_address, receive_port);
 
-        if (result != 0) {
+        if (!result) {
             logger->error("Failed to send to {}:{} with error {} '{}'", 
-                receive_address, receive_port, result, descriptor::error_description(result));
+                receive_address, receive_port, result.error().value(), result.error().message());
             break;
         }
         }

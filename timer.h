@@ -92,29 +92,28 @@ protected:
     virtual ~timer() = default;
 
     template <typename Period>
-    [[nodiscard]] int32_t arm(duration<Period>&& interval) const noexcept {
+    [[nodiscard]] std::error_code arm(duration<Period>&& interval) const noexcept {
         return arm(std::chrono::duration_cast<std::chrono::nanoseconds>(interval).count());
     }
 
     template <typename Period, typename Function, typename... Args>
     void arm(duration<Period>&& interval,
-             std::promise<int32_t>&& promise,
+             std::promise<std::errc>&& promise,
              Function&& func, Args&&... args) const noexcept {
         if (descriptor_ == -1) {
-            promise.set_value(-1);
+            promise.set_value(std::errc::bad_file_descriptor);
         }
         else {
-            auto result = arm(std::forward<duration<Period>>(interval));
-
-            if (result == 0) {
+            if (auto const result = arm(std::forward<duration<Period>>(interval)); !result) {
                 using tuple = std::tuple<std::decay_t<Function>, std::decay_t<Args>...>;
                 auto decay_copied = std::make_unique<tuple>(std::forward<Function>(func), std::forward<Args>(args)...);
 
-                std::thread([this](std::promise<int32_t>&& p, decltype(decay_copied)&& params) {
-                    int32_t result = 0;
+                std::thread([this](std::promise<std::errc>&& p, decltype(decay_copied)&& params) {
+                    std::error_code thread_result{};
+
                     while (!disarmed()) {
-                        result = wait();
-                        if (result == 0) {
+                        thread_result = wait();
+                        if (!thread_result) {
                             invoke<tuple>(tuple(*params), std::make_index_sequence<1 + sizeof...(Args)>{});
                         }
                         else {
@@ -122,26 +121,26 @@ protected:
                         }
                     }
 
-                    p.set_value(result);
-                }, std::forward<std::promise<int32_t>>(promise), std::move(decay_copied)).detach();
+                    p.set_value(static_cast<std::errc>(thread_result.value()));
+                }, std::forward<std::promise<std::errc>>(promise), std::move(decay_copied)).detach();
             }
             else {
-                promise.set_value(result);
+                promise.set_value(result.value());
             }
         }
     }
 
-    [[nodiscard]] int32_t disarm() const noexcept;
+    [[nodiscard]] std::error_code disarm() const noexcept;
     [[nodiscard]] bool disarmed() const noexcept;
-    [[nodiscard]] int32_t wait() const noexcept;
+    [[nodiscard]] std::error_code wait() const noexcept;
 
 protected:
-    [[nodiscard]] int32_t create() noexcept final override;
+    [[nodiscard]] std::error_code create() noexcept final override;
 
-    [[nodiscard]] int32_t arm(int64_t nanoseconds) const noexcept;
+    [[nodiscard]] std::error_code arm(int64_t nanoseconds) const noexcept;
 
     using timer_interval = std::tuple<int32_t, int32_t, int32_t, int32_t>;
-    [[nodiscard]] virtual int32_t timer_spec(int64_t nanoseconds, timer_interval &interval) const noexcept;
+    [[nodiscard]] virtual std::error_code timer_spec(int64_t nanoseconds, timer_interval &interval) const noexcept;
 };
 
 class deadline : public timer {
@@ -161,7 +160,7 @@ public:
     ~deadline() override = default;
 
 protected:
-    [[nodiscard]] int32_t timer_spec(int64_t nanoseconds, timer_interval &interval) const noexcept final override;
+    [[nodiscard]] std::error_code timer_spec(int64_t nanoseconds, timer_interval &interval) const noexcept final override;
 };
 }
 #endif // DESCRIPTOR_TIMER_H

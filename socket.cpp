@@ -25,17 +25,17 @@ expected_result socket::splice_impl(const descriptor& source, std::size_t count,
                             : std::unexpected(std::make_error_code(static_cast<std::errc>(errno)));
     }
 
-    return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+    return std::unexpected(std::make_error_code(std::errc::bad_file_descriptor));
 }
 
-int32_t socket::shutdown() const noexcept {
+std::error_code socket::shutdown() const noexcept {
     if (descriptor_.load() != -1) {
         if (::shutdown(descriptor_.load(), SHUT_RD) == -1) {
-            return errno;
+            return std::make_error_code(static_cast<std::errc>(errno));
         }
     }
 
-    return 0;
+    return {};
 }
 
 } // descriptor

@@ -40,26 +40,25 @@ auto main(int argc, char **argv)->int {
         std::string receive_address{};
 
         {
-        auto [result, count] =
+        auto const result =
             server->read_from(buffer, receive_address);
 
-        if (result != 0) {
+        if (!result) {
             logger->error("Failed to read from {} with result {} {}", 
-                receive_address, result, descriptor::error_description(result));
+                receive_address, result.error().value(), result.error().message());
             break;
         }
         else {
-            request = std::string(static_cast<const char*>(static_cast<const void*>(buffer.data())), count);
+            request = std::string(static_cast<const char*>(static_cast<const void*>(buffer.data())), result.value());
             logger->info("Received {} from {}", request, receive_address);
         }
         }
         {
-        auto [result, count] =
-            server->write_to(request.cbegin(), request.cend(), receive_address);
+        auto const result = server->write_to(request.cbegin(), request.cend(), receive_address);
 
-        if (result != 0) {
+        if (!result) {
             logger->error("Failed to write to {} with result {} {}", 
-                receive_address, result, descriptor::error_description(result));
+                receive_address, result.error().value(), result.error().message());
             break;
         }
         }
