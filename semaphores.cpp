@@ -8,54 +8,54 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-int32_t descriptor::semaphore::wait() noexcept {
+std::error_code descriptor::semaphore::wait() noexcept {
     if (sem_ == nullptr) {
-        return EINVAL;
+        return std::make_error_code(std::errc::bad_file_descriptor);
     }
     else {
         if (::sem_wait(static_cast<sem_t*>(static_cast<void*>(sem_))) == -1) {
-            return errno;
+            return std::make_error_code(static_cast<std::errc>(errno));
         }
     }
 
-    return 0;
+    return {};
 }
 
-int32_t descriptor::semaphore::try_wait() noexcept {
+std::error_code descriptor::semaphore::try_wait() noexcept {
     if (sem_ == nullptr) {
-        return EINVAL;
+        return std::make_error_code(std::errc::bad_file_descriptor);
     }
     else {
         if (::sem_trywait(static_cast<sem_t*>(static_cast<void*>(sem_))) == -1) {
-            return errno;
+            return std::make_error_code(static_cast<std::errc>(errno));
         }
     }
 
-    return 0;
+    return {};
 }
 
-int32_t descriptor::semaphore::post() noexcept {
+std::error_code descriptor::semaphore::post() noexcept {
     if (sem_ == nullptr) {
-        return EINVAL;
+        return std::make_error_code(std::errc::bad_file_descriptor);
     }
     else {
         if (::sem_post(static_cast<sem_t*>(static_cast<void*>(sem_))) == -1) {
-            return errno;
+            return std::make_error_code(static_cast<std::errc>(errno));
         }
     }
 
-    return 0;
+    return {};
 }
 
-int32_t descriptor::named_semaphore::open(std::string_view name, uint32_t initial_value/* = 0ul*/) noexcept {
+std::error_code descriptor::named_semaphore::open(std::string_view name, uint32_t initial_value/* = 0ul*/) noexcept {
     if (sem_ != nullptr) {
         if (::sem_close(static_cast<sem_t*>(static_cast<void*>(sem_))) == -1) {
-            return errno;
+            return std::make_error_code(static_cast<std::errc>(errno));
         }        
     }
 
     if (!name.starts_with('/')) {
-        return EINVAL;
+        return std::make_error_code(std::errc::invalid_argument);
     }
 
     sem_ = static_cast<long int*>(static_cast<void*>(
@@ -63,7 +63,7 @@ int32_t descriptor::named_semaphore::open(std::string_view name, uint32_t initia
                            0644 /*S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH*/,
                            initial_value)));
         
-    auto const result = sem_ == nullptr ? errno : 0;
+    auto const result = sem_ == nullptr ? std::make_error_code(static_cast<std::errc>(errno)) : std::error_code{};
 
     if (sem_ != nullptr) {
         name_ = name;
@@ -72,26 +72,27 @@ int32_t descriptor::named_semaphore::open(std::string_view name, uint32_t initia
     return result;
 }
 
-int32_t descriptor::named_semaphore::close() noexcept {
+std::error_code descriptor::named_semaphore::close() noexcept {
     if (sem_) {
         if (::sem_close(static_cast<sem_t*>(static_cast<void*>(sem_))) == -1) {
-            return errno;
+            return std::make_error_code(static_cast<std::errc>(errno));
         }
 
         sem_ = nullptr;
     }
 
     if (::sem_unlink(name_.c_str()) == -1) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
     name_.clear();
 
-    return 0;
+    return {};
 }
 
-int32_t descriptor::unnamed_semaphore::init(std::string_view name, uint32_t initial_value) noexcept {
-    if (auto const result = close(); result != 0) {
+std::error_code descriptor::unnamed_semaphore::init(std::string_view name, uint32_t initial_value) noexcept {
+
+    if (auto const result = close()) {
         return result;
     }
 
@@ -109,14 +110,14 @@ int32_t descriptor::unnamed_semaphore::init(std::string_view name, uint32_t init
         if (fd == -1) {
             auto const result = errno;
             name_.clear();
-            return result;
+            return std::make_error_code(static_cast<std::errc>(result));
         }
 
         if (::ftruncate(fd, sizeof(sem_t)) == -1) {
             auto const result = errno;
             ::close(fd);
             name_.clear();
-            return result;
+            return std::make_error_code(static_cast<std::errc>(result));
         }
 
         sem_ = static_cast<long int*>(
@@ -127,26 +128,26 @@ int32_t descriptor::unnamed_semaphore::init(std::string_view name, uint32_t init
             auto const result = errno;
             ::close(fd);
             name_.clear();
-            return result;
+            return std::make_error_code(static_cast<std::errc>(result));
         }
     }
    
 
     if (::sem_init(static_cast<sem_t*>(static_cast<void*>(sem_)), shared_semaphore, initial_value) == -1) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
-    return 0;
+    return {};
 }
 
-int32_t descriptor::unnamed_semaphore::close() noexcept {
+std::error_code descriptor::unnamed_semaphore::close() noexcept {
     if (sem_) {
         if (::sem_destroy(static_cast<sem_t*>(static_cast<void*>(sem_))) == -1) {
-            return errno;
+            return std::make_error_code(static_cast<std::errc>(errno));
         }
 
         if (::sem_close(static_cast<sem_t*>(static_cast<void*>(sem_))) == -1) {
-            return errno;
+            return std::make_error_code(static_cast<std::errc>(errno));
         }
 
         if (name_.empty()) {
@@ -158,5 +159,5 @@ int32_t descriptor::unnamed_semaphore::close() noexcept {
 
     name_.clear();
 
-    return 0;
+    return {};
 }

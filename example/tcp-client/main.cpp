@@ -40,9 +40,9 @@ auto main(int argc, char **argv)->int {
     descriptor::tcp_socket client{};
 
     auto result = client.connect(server_address, server_port);
-    if (result != 0) {
+    if (result) {
         logger->error("Failed to connect to {}:{} with error {} '{}'", 
-            server_address, server_port, result, descriptor::error_description(result));;
+            server_address, server_port, result.value(), result.message());
     }
     else {
         std::string request{};
@@ -52,22 +52,23 @@ auto main(int argc, char **argv)->int {
 
             std::cin >> request;
 
-            auto const [write_result, bytes_written] =
-                client.write(request.cbegin(), request.cend());
+            auto const write_result = client.write(request.cbegin(), request.cend());
 
-            if (write_result != 0) {
-                logger->error("Send failed; {} '{}'", write_result, descriptor::error_description(write_result));
+            if (!write_result) {
+                logger->error("Send failed; {} '{}'", write_result.error().value(), write_result.error().message());
             }
             else {
-                logger->info("Sent '{}' ({} bytes)\n", request, bytes_written);
+                logger->info("Sent '{}' ({} bytes)\n", request, write_result.value());
 
                 std::array<char, 24> response{};
-                auto const [read_result, bytes_read] = client.read(response);
-                if (read_result != 0) {
-                    logger->error("Receive failed; {} '{}'", read_result, descriptor::error_description(read_result));
+                auto const read_result = client.read(response);
+                if (!read_result) {
+                    logger->error("Receive failed; {} '{}'", 
+                        read_result.error().value(), read_result.error().message());
                 }
                 else {
-                    logger->info("Received '{}' ({} bytes)\n", std::string_view(response.cbegin(), bytes_read), bytes_read);
+                    logger->info("Received '{}' ({} bytes)\n", 
+                        std::string_view(response.cbegin(), read_result.value()), read_result.value());
                 }
             }
         } while (request != "bye");
@@ -75,8 +76,8 @@ auto main(int argc, char **argv)->int {
         fmt::print(fg(fmt::color::green), "\nDisconnecting!\n");
 
         result = client.disconnect();
-        if (result != 0) {
-            logger->error("Disconnect failed; {} '{}'", result, descriptor::error_description(result));
+        if (result) {
+            logger->error("Disconnect failed; {} '{}'", result.value(), result.message());
         }
     }
 

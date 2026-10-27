@@ -37,10 +37,10 @@ auto main(int argc, char **argv)->int {
         return EXIT_FAILURE;
     }
 
-    if (auto const result = server.bind(server_address, server_port); result != 0) {
+    if (auto const result = server.bind(server_address, server_port)) {
         logger->error("Failed to bind to {}:{} with result {} '{}'", 
-            server_address, server_port, result, descriptor::error_description(result));
-        return result;
+            server_address, server_port, result.value(), result.message());
+        return result.value();
     }
 
     std::array<uint8_t, 4096> buffer{};
@@ -52,30 +52,31 @@ auto main(int argc, char **argv)->int {
         uint16_t receive_port{};
 
         {
-        auto [result, count] =
+        auto const result =
             server.read_from(buffer, receive_address, receive_port);
 
-        if (result != 0) {
+        if (result) {
             logger->error("Failed to receive from {}:{} with error {} '{}'", 
-                receive_address, receive_port, result, descriptor::error_description(result));
+                receive_address, receive_port, result.error().value(), result.error().message());
             break;
         }
         else {
-            request = std::string(static_cast<const char*>(static_cast<const void*>(buffer.data())), count);
+            request = std::string(static_cast<const char*>(static_cast<const void*>(buffer.data())), result.value());
             logger->info("Received {} from {}:{}", request, receive_address, receive_port);
             fmt::print(fg(fmt::color::light_green), "Received {}\n", request);
         }
         }
         {
-        auto [result, count] =
-            server.write_to(request.cbegin(), request.cend(),receive_address, receive_port);
+        auto const result =
+            server.write_to(request.cbegin(), request.cend(), receive_address, receive_port);
 
-        if (result != 0) {
+        if (result) {
             logger->error("Failed to send to {}:{} with error {} '{}'", 
-                receive_address, receive_port, result, descriptor::error_description(result));
+                receive_address, receive_port, result.error().value(), result.error().message());
             break;
         }
         }
     }
+
     return EXIT_SUCCESS;
 }

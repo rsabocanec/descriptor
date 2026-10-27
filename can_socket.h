@@ -101,7 +101,9 @@ public:
     auto operator<=>(const can_socket_frame&) const = default;
 
     [[nodiscard]] auto header() const noexcept { return header_; }
+
     void header(uint32_t uint32_id) noexcept { header_.uint32_id_ = uint32_id; }
+
     void header(uint32_t msg_num, uint32_t msg_id, uint32_t dest, uint32_t src, uint32_t msg_type) noexcept {
         can_header header{};
         header.bitfield_id_ = {
@@ -132,31 +134,31 @@ public:
 
 
     template<std::random_access_iterator It>
-    [[nodiscard]] std::tuple<int32_t, int32_t> as_bytes(It first, std::size_t count) const noexcept {
+    [[nodiscard]] expected_result as_bytes(It first, std::size_t count) const noexcept {
         return as_bytes(std::as_writable_bytes(std::span(first, count)));
     }
 
     template<std::random_access_iterator It, class End>
-    [[nodiscard]] std::tuple<int32_t, int32_t> as_bytes(It first, End last) const noexcept {
+    [[nodiscard]] expected_result as_bytes(It first, End last) const noexcept {
         return as_bytes(std::as_writable_bytes(std::span(first, last)));
     }
 
     template<class U, std::size_t N>
-    [[nodiscard]] std::tuple<int32_t, int32_t> as_bytes(std::array<U, N>& arr) const noexcept {
+    [[nodiscard]] expected_result as_bytes(std::array<U, N>& arr) const noexcept {
         return as_bytes(std::as_writable_bytes(std::span(arr)));
     }
 
-    [[nodiscard]] std::tuple<int32_t, int32_t> as_bytes(std::span<std::byte> buffer) const noexcept;
+    [[nodiscard]] expected_result as_bytes(std::span<std::byte> buffer) const noexcept;
 };
 
 class can_socket : public bound_socket {
 public:
     can_socket() = default;
 
-    [[nodiscard]] int32_t bind(std::string_view address) noexcept final;
+    [[nodiscard]] std::error_code bind(std::string_view address) noexcept final;
     
 protected:
-    [[nodiscard]] int32_t create() noexcept final;
+    [[nodiscard]] std::error_code create() noexcept final;
 };
 
 } // descriptor

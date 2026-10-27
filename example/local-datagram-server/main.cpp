@@ -26,10 +26,10 @@ auto main(int argc, char **argv)->int {
     std::unique_ptr<descriptor::datagram_socket> server =
         std::make_unique<descriptor::local_datagram_socket>();
 
-    if (auto const result = server->bind(socket_filename); result != 0) {
+    if (auto const result = server->bind(socket_filename)) {
         logger->error("Failed to bind to {} with result {} {}", 
-            socket_filename, result, descriptor::error_description(result));
-        return result;
+            socket_filename, result.value(), result.message());
+        return result.value();
     }
 
     std::array<uint8_t, 4096> buffer{};
@@ -39,35 +39,26 @@ auto main(int argc, char **argv)->int {
     while (request != "bye") {
         std::string receive_address{};
 
-        {
-        auto [result, count] =
-            server->read_from(buffer, receive_address);
-
-        if (result != 0) {
+        if (auto const result = server->read_from(buffer, receive_address); !result) {
             logger->error("Failed to read from {} with result {} {}", 
-                receive_address, result, descriptor::error_description(result));
+                receive_address, result.error().value(), result.error().message());
             break;
         }
         else {
-            request = std::string(static_cast<const char*>(static_cast<const void*>(buffer.data())), count);
+            request = std::string(static_cast<const char*>(static_cast<const void*>(buffer.data())), result.value());
             logger->info("Received {} from {}", request, receive_address);
         }
-        }
-        {
-        auto [result, count] =
-            server->write_to(request.cbegin(), request.cend(), receive_address);
 
-        if (result != 0) {
+        if (auto const result = server->write_to(request.cbegin(), request.cend(), receive_address); !result) {
             logger->error("Failed to write to {} with result {} {}", 
-                receive_address, result, descriptor::error_description(result));
+                receive_address, result.error().value(), result.error().message());
             break;
-        }
         }
     }
 
-    if (auto const result = descriptor::unlink(socket_filename); result != 0) {
+    if (auto const result = descriptor::unlink(socket_filename)) {
         logger->error("Failed to unlink {} with result {} {}", 
-            socket_filename, result, descriptor::error_description(result));
+            socket_filename, result.value(), result.message());
     }
     
     return EXIT_SUCCESS;

@@ -41,69 +41,69 @@ public:
     message_queue& operator=(const message_queue&) = delete;
     message_queue& operator=(message_queue&&) = default;
 
-    [[nodiscard]] int32_t open( std::string_view name,
-                                int32_t flags = open_flags::read_write
-                                              | open_flags::create,
-                                int32_t mode  = open_mode::read_by_owner
-                                              | open_mode::write_by_owner
-                                              | open_mode::read_by_group
-                                              | open_mode::read_by_others) noexcept final override;
+    [[nodiscard]] std::error_code open( std::string_view name,
+                                        int32_t flags = open_flags::read_write
+                                                      | open_flags::create,
+                                        int32_t mode  = open_mode::read_by_owner
+                                                      | open_mode::write_by_owner
+                                                      | open_mode::read_by_group
+                                                      | open_mode::read_by_others) noexcept final override;
 
-    [[nodiscard]] int32_t close() noexcept final override;
+    [[nodiscard]] std::error_code close() noexcept final override;
 
-    [[nodiscard]] std::tuple<int32_t, int32_t> read(std::span<std::byte> buffer) const noexcept final override;
+    [[nodiscard]] expected_result read(std::span<std::byte> buffer) const noexcept final override;
 
     template<std::random_access_iterator It, typename Period>
-    [[nodiscard]] std::tuple<int32_t, int32_t> timed_read(It first, std::size_t count, duration<Period> &&timeout) const noexcept {
+    [[nodiscard]] expected_result timed_read(It first, std::size_t count, duration<Period> &&timeout) const noexcept {
         return timed_read(std::as_writable_bytes(std::span(first, count)), std::forward<Period>(timeout));
     }
 
     template<std::random_access_iterator It, class End, typename Period>
-    [[nodiscard]] std::tuple<int32_t, int32_t> timed_read(It first, End last, duration<Period> &&timeout) const noexcept {
+    [[nodiscard]] expected_result timed_read(It first, End last, duration<Period> &&timeout) const noexcept {
         return timed_read(std::as_writable_bytes(std::span(first, last)), std::forward<Period>(timeout));
     }
 
     template<class U, std::size_t N, typename Period>
-    [[nodiscard]] std::tuple<int32_t, int32_t> timed_read(std::array<U, N>& arr, duration<Period> &&timeout) const noexcept {
+    [[nodiscard]] expected_result timed_read(std::array<U, N>& arr, duration<Period> &&timeout) const noexcept {
         return timed_read(std::as_writable_bytes(std::span(arr)), std::forward<Period>(timeout));
     }
 
     template <typename Period>
-    [[nodiscard]] std::tuple<int32_t, int32_t> timed_read(std::span<std::byte> buffer, duration<Period> &&timeout) const noexcept {
+    [[nodiscard]] expected_result timed_read(std::span<std::byte> buffer, duration<Period> &&timeout) const noexcept {
         return timed_read(buffer, std::chrono::duration_cast<std::chrono::nanoseconds>(timeout).count());
     }
 
-    [[nodiscard]] std::tuple<int32_t, int32_t> write(std::span<const std::byte> buffer) const noexcept final override;
+    [[nodiscard]] expected_result write(std::span<const std::byte> buffer) const noexcept final override;
 
     template<std::random_access_iterator It, typename Period>
-    [[nodiscard]] std::tuple<int32_t, int32_t> timed_write(It first, std::size_t count, duration<Period> &&timeout) const noexcept {
+    [[nodiscard]] expected_result timed_write(It first, std::size_t count, duration<Period> &&timeout) const noexcept {
         return timed_write(std::as_bytes(std::span(first, count)), std::forward<Period>(timeout));
     }
 
     template<std::random_access_iterator It, class End, typename Period>
-    [[nodiscard]] std::tuple<int32_t, int32_t> timed_write(It first, End last, duration<Period> &&timeout) const noexcept {
+    [[nodiscard]] expected_result timed_write(It first, End last, duration<Period> &&timeout) const noexcept {
         return timed_write(std::as_bytes(std::span(first, last)), std::forward<Period>(timeout));
     }
 
     template<class U, std::size_t N, typename Period>
-    [[nodiscard]] std::tuple<int32_t, int32_t> timed_write(const std::array<U, N>& arr, duration<Period> &&timeout) const noexcept {
+    [[nodiscard]] expected_result timed_write(const std::array<U, N>& arr, duration<Period> &&timeout) const noexcept {
         return timed_write(std::as_bytes(std::span(arr)), std::forward<Period>(timeout));
     }
 
     template <typename Period>
-    [[nodiscard]] std::tuple<int32_t, int32_t> timed_write(std::span<const std::byte> buffer, duration<Period> &&timeout) const noexcept {
+    [[nodiscard]] expected_result timed_write(std::span<const std::byte> buffer, duration<Period> &&timeout) const noexcept {
         return timed_write(buffer, std::chrono::duration_cast<std::chrono::nanoseconds>(timeout).count());
     }
 
-    int32_t notify() const noexcept;
-    int32_t notify(int32_t signal_number) const noexcept;
-    int32_t notify(std::function<void(std::unique_ptr<int32_t> ptr)> handler) const noexcept;
+    [[nodiscard]] std::error_code notify() const noexcept;
+    [[nodiscard]] std::error_code notify(int32_t signal_number) const noexcept;
+    [[nodiscard]] std::error_code notify(std::function<void(std::unique_ptr<int32_t> ptr)> handler) const noexcept;
 
-    int32_t get_attributes(attributes &attr) const noexcept;
-    int32_t set_attributes(const attributes &attr, std::optional<attributes> old_attr = std::nullopt) const noexcept;
+    [[nodiscard]] std::error_code get_attributes(attributes &attr) const noexcept;
+    [[nodiscard]] std::error_code set_attributes(const attributes &attr, std::optional<attributes> old_attr = std::nullopt) const noexcept;
 protected:
-    [[nodiscard]] std::tuple<int32_t, int32_t> timed_read(std::span<std::byte> buffer, int64_t timeout_nanoseconds) const noexcept;
-    [[nodiscard]] std::tuple<int32_t, int32_t> timed_write(std::span<const std::byte> buffer, int64_t timeout_nanoseconds) const noexcept;
+    [[nodiscard]] expected_result timed_read(std::span<std::byte> buffer, int64_t timeout_nanoseconds) const noexcept;
+    [[nodiscard]] expected_result timed_write(std::span<const std::byte> buffer, int64_t timeout_nanoseconds) const noexcept;
 };
 }
 #endif // DESCRIPTOR_MESSAGE_QUEUE_H

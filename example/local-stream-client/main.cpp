@@ -27,8 +27,8 @@ auto main(int argc, char **argv)->int {
     }
 
     auto result = client.connect(server_path);
-    if (result != 0) {
-        std::cerr << "Connect failed; " << descriptor::error_description(result) << '\n';
+    if (result) {
+        std::cerr << "Connect failed; " << result.message() << '\n';
     }
     else {
         std::string request{};
@@ -37,31 +37,30 @@ auto main(int argc, char **argv)->int {
             std::cout << "\nREQUEST: ";
             std::cin >> request;
 
-            auto [write_result, bytes_written]  =
-                client.write(request.cbegin(), request.cend());
+            auto const write_result = client.write(request.cbegin(), request.cend());
 
-            if (write_result != 0) {
-                std::cerr << "Write failed; " << descriptor::error_description(write_result) << '\n';
+            if (!write_result) {
+                std::cerr << "Write failed; " << write_result.error().message() << '\n';
             }
             else {
                 std::cout << "Sent '" << request << "'\n";
 
                 std::array<char, 24> response{};
-                auto const [read_result, bytes_read] =
-                    client.read(response);
 
-                if (read_result != 0) {
-                    std::cerr << "Read failed; " << descriptor::error_description(read_result) << '\n';
+                auto const read_result = client.read(response);
+
+                if (!read_result) {
+                    std::cerr << "Read failed; " << read_result.error().message() << '\n';
                 }
                 else {
-                    std::cout << "Received '" << std::string_view(response.cbegin(), bytes_read) << "'\n";
+                    std::cout << "Received '" << std::string_view(response.cbegin(), read_result.value()) << "'\n";
                 }
             }
         } while (request != "bye");
 
         result = client.disconnect();
-        if (result != 0) {
-            std::cerr << "Disconnect failed; " << descriptor::error_description(result) << '\n';
+        if (result) {
+            std::cerr << "Disconnect failed; " << result.message() << '\n';
         }
     }
 

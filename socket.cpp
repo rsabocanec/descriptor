@@ -9,34 +9,33 @@
 
 namespace descriptor {
 
-std::tuple<int32_t, int32_t> socket::splice_impl(const descriptor& source, std::size_t count,
+expected_result socket::splice_impl(const descriptor& source, std::size_t count,
                                                  std::optional<int32_t> offset/* = std::nullopt*/) const noexcept {
-
-    std::tuple<int32_t, int32_t> result {EINVAL, -1};
 
     off_t offset_value = offset ? static_cast<off_t>(*offset) : 0;
 
     if (descriptor_.load() != -1) {
-        std::get<1>(result) =
+        auto const result =
             ::sendfile(descriptor_.load(),
                        source.load(),  
                        offset ? &offset_value : nullptr, 
                        count);
 
-        std::get<0>(result) = std::get<1>(result) == -1 ? errno : 0;
+        return result != -1 ? expected_result{result} 
+                            : std::unexpected(std::make_error_code(static_cast<std::errc>(errno)));
     }
 
-    return result;
+    return std::unexpected(std::make_error_code(std::errc::bad_file_descriptor));
 }
 
-int32_t socket::shutdown() const noexcept {
+std::error_code socket::shutdown() const noexcept {
     if (descriptor_.load() != -1) {
         if (::shutdown(descriptor_.load(), SHUT_RD) == -1) {
-            return errno;
+            return std::make_error_code(static_cast<std::errc>(errno));
         }
     }
 
-    return 0;
+    return {};
 }
 
 } // descriptor

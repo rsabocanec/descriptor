@@ -18,9 +18,9 @@ static_assert(
 );
 
 // timer implementation
-int32_t timer::disarm() const noexcept {
+std::error_code timer::disarm() const noexcept {
     if (!valid()) {
-        return -1;
+        return std::make_error_code(std::errc::bad_file_descriptor);
     }
 
     constexpr struct itimerspec its = {
@@ -28,10 +28,10 @@ int32_t timer::disarm() const noexcept {
         .it_value = {.tv_sec = 0, .tv_nsec = 0}};
 
     if (::timerfd_settime(descriptor_, TFD_TIMER_ABSTIME, &its, nullptr) == -1) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
-    return 0;
+    return {};
 }
 
 bool timer::disarmed() const noexcept {
@@ -47,50 +47,48 @@ bool timer::disarmed() const noexcept {
     return true;
 }
 
-int32_t timer::wait() const noexcept {
+std::error_code timer::wait() const noexcept {
     if (!valid()) {
-        return -1;
+        return std::make_error_code(std::errc::bad_file_descriptor);
     }
 
     uint64_t exp{};
 
     switch (::read(descriptor_, &exp, sizeof(exp))) {
         case -1:
-            return errno;
+            return std::make_error_code(static_cast<std::errc>(errno));
         case sizeof(exp):
-            return 0;
+            return std::error_code{};
         default:
-            return EOVERFLOW;
+            return std::make_error_code(std::errc::value_too_large);
     }
 }
 
-int32_t timer::create() noexcept {
-    auto const result = close();
-    if (result != 0) {
+std::error_code timer::create() noexcept {
+    if (auto const result = close()) {
         return result;
     }
 
     descriptor_ = ::timerfd_create(static_cast<int>(clock_type_), 0);
-    return descriptor_ == -1 ? errno : 0;
+    return descriptor_ == -1 ? std::make_error_code(static_cast<std::errc>(errno)) : std::error_code{};
 }
 
-int32_t timer::arm(int64_t nanoseconds) const noexcept {
+std::error_code timer::arm(int64_t nanoseconds) const noexcept {
     if (nanoseconds < 0) {
-        return EINVAL;
+        return std::make_error_code(std::errc::invalid_argument);
     }
 
     if (nanoseconds == 0) {
-        return 0;
+        return {};
     }
 
     if (!valid()) {
-        return -1;
+        return std::make_error_code(std::errc::bad_file_descriptor);
     }
 
     timer_interval interval{};
 
-    auto const result = timer_spec(nanoseconds, interval);
-    if (result != 0) {
+    if (auto const result = timer_spec(nanoseconds, interval)) {
         return result;
     }
 
@@ -100,17 +98,17 @@ int32_t timer::arm(int64_t nanoseconds) const noexcept {
     };
 
     if (::timerfd_settime(descriptor_, TFD_TIMER_ABSTIME, &its, nullptr) == -1) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
-    return 0;
+    return {};
 }
 
-int32_t timer::timer_spec(int64_t nanoseconds, timer_interval &interval) const noexcept {
+std::error_code timer::timer_spec(int64_t nanoseconds, timer_interval &interval) const noexcept {
     struct timespec now{};
 
     if (::clock_gettime(static_cast<int>(clock_type_), &now) != 0) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
     else {
         interval = {
@@ -121,14 +119,14 @@ int32_t timer::timer_spec(int64_t nanoseconds, timer_interval &interval) const n
         };
     }
 
-    return 0;
+    return {};
 }
 
-int32_t deadline::timer_spec(int64_t nanoseconds, timer_interval &interval) const noexcept {
+std::error_code deadline::timer_spec(int64_t nanoseconds, timer_interval &interval) const noexcept {
     struct timespec now{};
 
     if (::clock_gettime(static_cast<int>(clock_type_), &now) != 0) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
     else {
         interval = {
@@ -139,6 +137,6 @@ int32_t deadline::timer_spec(int64_t nanoseconds, timer_interval &interval) cons
         };
     }
 
-    return 0;
+    return {};
 }
 }

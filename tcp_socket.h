@@ -25,34 +25,32 @@ class tcp_socket : public stream_socket {
 public:
     tcp_socket() = default;
 
-    [[nodiscard]] int32_t bind(std::string_view address) noexcept final {
-        auto const [result, pure_address, port] = parse_ip_address(address);
-
-        if (result != 0) {
-            return result;
+    [[nodiscard]] std::error_code bind(std::string_view address) noexcept final {
+        auto const result = parse_ip_address(address);
+        if (!result) {
+            return result.error();
         }
 
-        return bind(pure_address, port);
+        return bind(std::get<0>(result.value()), std::get<1>(result.value()));
     }
 
-    [[nodiscard]] int32_t bind(std::string_view address, uint16_t port) noexcept;
+    [[nodiscard]] std::error_code bind(std::string_view address, uint16_t port) noexcept;
 
-    [[nodiscard]] std::expected<acceptor, int32_t> accept() const noexcept final;
+    [[nodiscard]] std::expected<acceptor, std::error_code> accept() const noexcept final;
 
-    [[nodiscard]] int32_t connect(std::string_view address) noexcept final {
-        auto const [result, pure_address, port] = parse_ip_address(address);
-
-        if (result != 0) {
-            return result;
+    [[nodiscard]] std::error_code connect(std::string_view address) noexcept final {
+        auto const result = parse_ip_address(address);
+        if (!result) {
+            return result.error();
         }
 
-        return connect(pure_address, port);
+        return connect(std::get<0>(result.value()), std::get<1>(result.value()));
     }
 
-    [[nodiscard]] int32_t connect(std::string_view address, uint16_t port) noexcept;
+    [[nodiscard]] std::error_code connect(std::string_view address, uint16_t port) noexcept;
 
 protected:
-    [[nodiscard]] int32_t create() noexcept final;
+    [[nodiscard]] std::error_code create() noexcept final;
 };
 
 } // descriptor

@@ -34,99 +34,97 @@ void polled_state::set_state(int16_t revents) noexcept {
     has_exception_ = revents & POLLPRI;
 }
 
-int32_t descriptor::close() noexcept {
+std::error_code descriptor::close() noexcept {
     if (descriptor_.load() != -1) {
         if (::close(descriptor_.load()) == -1) {
-            return errno;
+            return std::make_error_code(static_cast<std::errc>(errno));
         }
 
         descriptor_ = -1;
     }
 
-    return 0;
+    return {};
 }
 
 
-int32_t descriptor::duplicate(int32_t other) noexcept {
+std::error_code descriptor::duplicate(int32_t other) noexcept {
     if (descriptor_.load() == -1) {
         descriptor_ = ::dup(other);
-        return descriptor_ == -1 ? errno : 0;
+        return descriptor_ == -1 ? std::make_error_code(static_cast<std::errc>(errno)) : std::error_code{};
     }
     else {
         int32_t new_descriptor = ::dup2(other, descriptor_.load());
         if (new_descriptor == -1) {
-            return errno;
+            return std::make_error_code(static_cast<std::errc>(errno));
         }
 
         if (::close(descriptor_.load()) == -1) {
             int32_t close_errno = errno;
             ::close(new_descriptor); // Attempt to close the new descriptor
-            return close_errno;
+            return std::make_error_code(static_cast<std::errc>(close_errno));
         }
 
         descriptor_ = new_descriptor;
-        return 0;
+        return {};
     }
 }
 
 
-std::tuple<int32_t, int32_t> descriptor::read(std::span<std::byte> buffer) const noexcept {
-    std::tuple<int32_t, int32_t> result {EINVAL, -1};
+expected_result descriptor::read(std::span<std::byte> buffer) const noexcept {
 
     if (descriptor_.load() != -1) {
-        std::get<1>(result) =
+        auto const result =
             ::read(descriptor_.load(),
                     static_cast<void*>(buffer.data()),
                     static_cast<std::size_t>(buffer.size()));
 
-        std::get<0>(result) = std::get<1>(result) == -1 ? errno : 0;
+        return result != -1 ? expected_result{result} 
+                            : std::unexpected(std::make_error_code(static_cast<std::errc>(errno)));
     }
 
-    return result;
+    return std::unexpected(std::make_error_code(std::errc::bad_file_descriptor));
 }
 
-std::tuple<int32_t, int32_t> descriptor::write(std::span<const std::byte> buffer) const noexcept {
-    std::tuple<int32_t, int32_t> result {EINVAL, -1};
-
+expected_result descriptor::write(std::span<const std::byte> buffer) const noexcept {
     if (descriptor_.load() != -1) {
-        std::get<1>(result) =
+        auto const result =
             ::write(descriptor_.load(),
                     static_cast<const void*>(buffer.data()),
                     static_cast<std::size_t>(buffer.size()));
 
-        std::get<0>(result) = std::get<1>(result) == -1 ? errno : 0;
+        return result != -1 ? expected_result{result} 
+                            : std::unexpected(std::make_error_code(static_cast<std::errc>(errno)));
     }
 
-    return result;
+    return std::unexpected(std::make_error_code(std::errc::bad_file_descriptor));
 }
 
-std::tuple<int32_t, int32_t> descriptor::splice(const descriptor& source, std::size_t count,
-                                                std::optional<int32_t> offset_in/* = std::nullopt*/,
-                                                std::optional<int32_t> offset_out/* = std::nullopt*/,
-                                                uint32_t flags/* = 0ul*/) const noexcept {
-
-    std::tuple<int32_t, int32_t> result {EINVAL, -1};
+expected_result descriptor::splice(const descriptor& source, std::size_t count,
+                                                           std::optional<int32_t> offset_in/* = std::nullopt*/,
+                                                           std::optional<int32_t> offset_out/* = std::nullopt*/,
+                                                           uint32_t flags/* = 0ul*/) const noexcept {
 
     off_t offset_in_value = offset_in ? static_cast<off_t>(*offset_in) : 0;
     off_t offset_out_value = offset_out ? static_cast<off_t>(*offset_out) : 0;
 
     if (descriptor_.load() != -1) {
-        std::get<1>(result) =
+        auto const result =
             ::copy_file_range(source.descriptor_.load(),
                               offset_in ? &offset_in_value : nullptr,
                               descriptor_.load(),
                               offset_out ? &offset_out_value : nullptr,
                               count, flags);
 
-        std::get<0>(result) = std::get<1>(result) == -1 ? errno : 0;
+        return result != -1 ? expected_result{result} 
+                            : std::unexpected(std::make_error_code(static_cast<std::errc>(errno)));
     }
 
-    return result;
+    return std::unexpected(std::make_error_code(std::errc::bad_file_descriptor));
 }
 
-int32_t descriptor::select(int64_t timeout_nanoseconds) const noexcept {
+std::error_code descriptor::select(int64_t timeout_nanoseconds) const noexcept {
     if (descriptor_.load() == -1) {
-        return -1;
+        return std::make_error_code(std::errc::bad_file_descriptor);
     }
 
     sigset_t sigmask{};
@@ -152,6 +150,7 @@ int32_t descriptor::select(int64_t timeout_nanoseconds) const noexcept {
     ::pthread_sigmask(SIG_SETMASK, nullptr, &oldmask);
 
     int32_t ready{};
+    int32_t error{};
 
     pthread_cleanup_push([](void *arg) {
         ::pthread_sigmask(SIG_SETMASK, static_cast<sigset_t*>(arg), nullptr);
@@ -160,19 +159,24 @@ int32_t descriptor::select(int64_t timeout_nanoseconds) const noexcept {
     ready = ::pselect(descriptor_.load() + 1, &rfds, nullptr, nullptr, &ts, &sigmask);
 
     if (ready == -1) {
-        ready = errno;
+        error = errno;
     }
 
     pthread_cleanup_pop(0);
 
-    return ready > 0 ? 0 : ETIMEDOUT;
+    if (error != 0) {
+        return std::make_error_code(static_cast<std::errc>(error));
+    }
+
+    return ready > 0 ? std::error_code{} 
+                     : std::make_error_code(std::errc::timed_out);
 }
 
-int32_t descriptor::poll(int64_t timeout_nanoseconds, polled_state &state) const noexcept {
+std::error_code descriptor::poll(int64_t timeout_nanoseconds, polled_state &state) const noexcept {
     state = {};
 
     if (descriptor_.load() == -1) {
-        return -1;
+        return std::make_error_code(std::errc::bad_file_descriptor);
     }
 
     sigset_t sigmask{};
@@ -200,6 +204,7 @@ int32_t descriptor::poll(int64_t timeout_nanoseconds, polled_state &state) const
     ::pthread_sigmask(SIG_SETMASK, nullptr, &oldmask);
 
     int32_t ready{};
+    int32_t error{};
 
     pthread_cleanup_push([](void *arg) {
         ::pthread_sigmask(SIG_SETMASK, static_cast<sigset_t*>(arg), nullptr);
@@ -208,25 +213,26 @@ int32_t descriptor::poll(int64_t timeout_nanoseconds, polled_state &state) const
     ready = ::ppoll(&pfd, 1, &ts, &sigmask);
 
     if (ready == -1) {
-        ready = errno;
+        error = errno;
     }
 
     pthread_cleanup_pop(0);
 
     state.set_state(pfd.revents);
 
-    return ready > 0 ? 0 : ETIMEDOUT;
+    if (error != 0) {
+        return std::make_error_code(static_cast<std::errc>(error));
+    }
+
+    return ready > 0 ? std::error_code{} 
+                     : std::make_error_code(std::errc::timed_out);
 }
 
 // Utility functions
-std::string_view error_description(int32_t error_code) noexcept {
-    return ::strerror(error_code);
-}
-
-void report_error(std::ostream& os, int32_t error_num, std::string_view prefix,
+void report_error(std::ostream& os, const std::error_code &ec, std::string_view prefix,
                   std::source_location location) noexcept {
-    os  << prefix << "Error " << error_num
-        << '[' << ::strerror(error_num) << "]\t"
+    os  << prefix << "Error " << ec.value() << " (" << ec.category().name() << "): "
+        << '[' << ec.message() << "]\t"
         << "in " << location.file_name()
         << " (" << location.function_name() << "), line "
         << location.line() << '\n'
@@ -237,8 +243,8 @@ void report_error(std::ostream& os, int32_t error_num, std::string_view prefix,
         ;
 }
 
-int32_t unlink(std::string_view filename) noexcept {
+std::error_code unlink(std::string_view filename) noexcept {
     const int32_t result = ::unlink(filename.data());
-    return result == -1 ? errno : 0;
+    return result == -1 ? std::make_error_code(static_cast<std::errc>(errno)) : std::error_code{};
 }
 }

@@ -8,7 +8,6 @@
 
 #include <linux/can.h>
 
-#include <unistd.h>
 #include <netinet/in.h>
 
 namespace descriptor {
@@ -34,8 +33,7 @@ can_socket_frame::can_socket_frame(std::span<const std::byte> buffer) noexcept
     }
 }
 
-std::tuple<int32_t, int32_t> can_socket_frame::as_bytes(std::span<std::byte> buffer) const noexcept {
-    std::tuple<int32_t, int32_t> result{EINVAL, -1};
+expected_result can_socket_frame::as_bytes(std::span<std::byte> buffer) const noexcept {
 
     struct can_frame frame{
         .can_id = header_.uint32_id_ & 0x0FFFFFFFU,
@@ -66,41 +64,41 @@ std::tuple<int32_t, int32_t> can_socket_frame::as_bytes(std::span<std::byte> buf
         std::copy_n(static_cast<const uint8_t*>(static_cast<const void*>(&frame)),
                     sizeof(frame),
                     static_cast<uint8_t*>(static_cast<void*>(buffer.data())));
-        std::get<0>(result) = 0;
-        std::get<1>(result) = sizeof(frame);
+                    
+        return expected_result{static_cast<int32_t>(sizeof(frame))};
     }
 
-    return result;
+    return std::unexpected(std::make_error_code(std::errc::invalid_argument));
 }
 
-int32_t can_socket::create() noexcept {
+std::error_code can_socket::create() noexcept {
     auto result = close();
-    if (result == 0) {
+    if (!result) {
         descriptor_ = ::socket(PF_CAN, SOCK_RAW, CAN_RAW);
         if (descriptor_.load() == -1) {
-            result = errno;
+            result = std::make_error_code(static_cast<std::errc>(errno));
         }
     }
 
     return result;
 }
 
-int32_t can_socket::bind(std::string_view address) noexcept {
+std::error_code can_socket::bind(std::string_view address) noexcept {
     if (descriptor_.load() == -1) {
-        if (auto const result = create(); result != 0) {
+        if (auto const result = create()) {
             return result;
         }
     }
 
     if (address.empty()) {
-        return EINVAL;
+        return std::make_error_code(std::errc::invalid_argument);
     }
 
     struct ifreq ifr{};
     ::strcpy(ifr.ifr_name, address.data());
 
     if (::ioctl(descriptor_.load(), SIOCGIFINDEX, &ifr) == -1) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
     const struct sockaddr_can can_address{
@@ -111,9 +109,9 @@ int32_t can_socket::bind(std::string_view address) noexcept {
     if (::bind(descriptor_.load(),
         static_cast<const struct sockaddr *>(static_cast<const void*>(&can_address)),
         sizeof(can_address)) == -1) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
-    return 0;
+    return {};
 }
 } // descriptor

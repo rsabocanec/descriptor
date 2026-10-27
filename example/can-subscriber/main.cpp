@@ -18,6 +18,8 @@ namespace {
     volatile std::sig_atomic_t signal_status;
 
     descriptor::can_socket *g_subscriber{nullptr};
+
+    std::atomic_bool g_running{true};
 }
 
 void signal_handler(int signal) {
@@ -26,6 +28,7 @@ void signal_handler(int signal) {
     switch (signal) {
         case SIGTERM:
         case SIGINT:
+            g_running = false;
             if (g_subscriber != nullptr) {
                 [[maybe_unused]] auto const result = g_subscriber->shutdown();
                 g_subscriber = nullptr;
@@ -61,22 +64,23 @@ auto main(int argc, char **argv)->int {
     descriptor::can_socket subscriber{};
     g_subscriber = &subscriber;
     
-    if (auto const result = subscriber.bind(can_device); result != 0) {
+    if (auto const result = subscriber.bind(can_device)) {
         logger->error("Failed to bind to {} with result {} {}", 
-            can_device, result, descriptor::error_description(result));
-        return result;
+            can_device, result.value(), result.message());
+        return result.value();
     }
 
     std::vector<uint8_t> buffer(descriptor::can_socket_frame::can_frame_buffer_size);
 
-    for (;;) {
-        auto const [result, count] = subscriber.read(buffer.begin(), buffer.end());
+    while (g_running) {
+        auto const result = subscriber.read(buffer.begin(), buffer.end());
 
-        if (result != 0) {
+        if (!result) {
             logger->error("Failed to read CAN payload: ({}) {}", 
-                result, descriptor::error_description(result));
-            return result;
+                result.error().value(), result.error().message());
+            return result.error().value();
         }
+
 
         descriptor::can_socket_frame frame(buffer.cbegin(), buffer.cend());
 

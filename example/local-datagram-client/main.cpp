@@ -29,10 +29,10 @@ auto main(int argc, char **argv)->int {
     }
 
     
-    if (auto const result = client->bind(client_filename); result != 0) {
+    if (auto const result = client->bind(client_filename)) {
         logger->error("Failed to bind to {} with result {} {}", 
-            client_filename, result, descriptor::error_description(result));
-        return result;
+            client_filename, result.value(), result.message());
+        return result.value();
     }
 
     std::string server_filename{};
@@ -57,36 +57,28 @@ auto main(int argc, char **argv)->int {
         std::string request{};
         std::cin >> request;
 
-        {
-        auto [result, count] = client->write_to(request.cbegin(), request.cend(), server_filename);
-
-        if (result != 0) {
+        if (auto const result = client->write_to(request.cbegin(), request.cend(), server_filename); !result) {
             logger->error("Failed to write to {} with result {} {}", 
-                server_filename, result, descriptor::error_description(result));
+                server_filename, result.error().value(), result.error().message());
             break;
         }
-        }
-        {
+        
         std::string receive_address{};
 
-        auto [result, count] =
-            client->read_from(buffer, receive_address);
-
-        if (result != 0) {
+        if (auto const result = client->read_from(buffer, receive_address); !result) {
             logger->error("Failed to read from {} with result {} {}", 
-                receive_address, result, descriptor::error_description(result));
+                receive_address, result.error().value(), result.error().message());
             break;
         }
         else {
-            response = std::string(static_cast<const char*>(static_cast<const void*>(buffer.data())), count);
+            response = std::string(static_cast<const char*>(static_cast<const void*>(buffer.data())), result.value());
             logger->info("Received {} from {}", response, receive_address);
         }
-        }
     }
-
-    if (auto const result = descriptor::unlink(client_filename); result != 0) {
+    
+    if (auto const result = descriptor::unlink(client_filename)) {
         logger->error("Failed to unlink {} with result {} {}", 
-            client_filename, result, descriptor::error_description(result));
+            client_filename, result.value(), result.message());
     }
 
     return EXIT_SUCCESS;

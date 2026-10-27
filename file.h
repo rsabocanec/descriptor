@@ -85,44 +85,44 @@ public:
         [[maybe_unused]] auto const result = close();
     }
 
-    [[nodiscard]] virtual int32_t open( std::string_view path,
-                                        int32_t flags = open_flags::read_write
-                                                      | open_flags::create,
-                                        int32_t mode  = open_mode::read_by_owner
-                                                      | open_mode::write_by_owner
-                                                      | open_mode::read_by_group
-                                                      | open_mode::read_by_others) noexcept;
+    [[nodiscard]] virtual std::error_code open( std::string_view path,
+                                                int32_t flags = open_flags::read_write
+                                                              | open_flags::create,
+                                                int32_t mode  = open_mode::read_by_owner
+                                                              | open_mode::write_by_owner
+                                                              | open_mode::read_by_group
+                                                              | open_mode::read_by_others) noexcept;
 
     [[nodiscard]] int64_t size() const noexcept;
 
-    [[nodiscard]] int32_t truncate(std::size_t size) const noexcept;
+    [[nodiscard]] std::error_code truncate(std::size_t size) const noexcept;
 
-    [[nodiscard]] int32_t deallocate(std::size_t size) const noexcept {
+    [[nodiscard]] std::error_code deallocate(std::size_t size) const noexcept {
         return truncate(size);
     }
 
-    [[nodiscard]] int32_t seek(seek_position position, int64_t offset, int64_t &new_offset) const noexcept;
+    [[nodiscard]] std::error_code seek(seek_position position, int64_t offset, int64_t &new_offset) const noexcept;
 
-    [[nodiscard]] int32_t seek(seek_position position, int64_t offset) const noexcept {
+    [[nodiscard]] std::error_code seek(seek_position position, int64_t offset) const noexcept {
         int64_t new_offset = 0;
         return seek(position, offset, new_offset);
     }
 
-    [[nodiscard]] int32_t seek(seek_position position) const noexcept {
+    [[nodiscard]] std::error_code seek(seek_position position) const noexcept {
         return seek(position, 0);
     }
 
-    [[nodiscard]] int32_t seek(int64_t offset) const noexcept {
+    [[nodiscard]] std::error_code seek(int64_t offset) const noexcept {
         return seek(seek_position::current, offset);
     }
 
-    [[nodiscard]] int32_t reset_position() const noexcept {
+    [[nodiscard]] std::error_code reset_position() const noexcept {
         return seek(seek_position::set, 0);
     }
 
 protected:
-    [[nodiscard]] int32_t create() noexcept final {
-        return 0;
+    [[nodiscard]] std::error_code create() noexcept final {
+        return {};
     }
 };
 
@@ -147,11 +147,11 @@ public:
         result = close();
     }
 
-    [[nodiscard]] int32_t memory_map(memory_map_access access, std::size_t size = 0) noexcept;
-    [[nodiscard]] int32_t memory_unmap() noexcept;
-    [[nodiscard]] int32_t memory_sync(memory_map_sync_flags flags) noexcept;
-    [[nodiscard]] int32_t memory_lock(std::size_t size = 0) noexcept;
-    [[nodiscard]] int32_t memory_unlock() noexcept;
+    [[nodiscard]] std::error_code memory_map(memory_map_access access, std::size_t size = 0) noexcept;
+    [[nodiscard]] std::error_code memory_unmap() noexcept;
+    [[nodiscard]] std::error_code memory_sync(memory_map_sync_flags flags) noexcept;
+    [[nodiscard]] std::error_code memory_lock(std::size_t size = 0) noexcept;
+    [[nodiscard]] std::error_code memory_unlock() noexcept;
 
     [[nodiscard]] void* memory_map_address() const noexcept {
         return memory_map_addr_;
@@ -200,9 +200,9 @@ public:
         [[maybe_unused]] auto const result = close();
     }
 
-    [[nodiscard]] int32_t open( std::string_view path,
-                                int32_t flags = memory_file_flags::allow_sealing,
-                                [[maybe_unused]] int32_t mode = 0) noexcept final override;
+    [[nodiscard]] std::error_code open( std::string_view path,
+                                        int32_t flags = memory_file_flags::allow_sealing,
+                                        [[maybe_unused]] int32_t mode = 0) noexcept final override;
 };
 
 
@@ -227,21 +227,21 @@ public:
     }
 
     template<std::random_access_iterator It>
-    [[nodiscard]] std::tuple<int32_t, int32_t> read(It first, std::size_t count) const noexcept {
+    [[nodiscard]] expected_result read(It first, std::size_t count) const noexcept {
         return file_.read(first, count);
     }
 
     template<std::random_access_iterator It, class End>
-    [[nodiscard]] std::tuple<int32_t, int32_t> read(It first, End last) const noexcept {
+    [[nodiscard]] expected_result read(It first, End last) const noexcept {
         return file_.read(first, last);
     }
 
     template<class U, std::size_t N>
-    [[nodiscard]] std::tuple<int32_t, int32_t> read(std::array<U, N>& arr) const noexcept {
+    [[nodiscard]] expected_result read(std::array<U, N>& arr) const noexcept {
         return file_.read(arr);
     }
 
-    [[nodiscard]] std::tuple<int32_t, int32_t> read(std::span<std::byte> buffer) const noexcept {
+    [[nodiscard]] expected_result read(std::span<std::byte> buffer) const noexcept {
         return file_.read(buffer);
     }
 
@@ -278,21 +278,21 @@ public:
     }
 
     template<std::random_access_iterator It>
-    [[nodiscard]] std::tuple<int32_t, int32_t> write(It first, std::size_t count) const noexcept {
+    [[nodiscard]] expected_result write(It first, std::size_t count) const noexcept {
         return file_.write(first, count);
     }
 
     template<std::random_access_iterator It, class End>
-    [[nodiscard]] std::tuple<int32_t, int32_t> write(It first, End last) const noexcept {
+    [[nodiscard]] expected_result write(It first, End last) const noexcept {
         return file_.write(first, last);
     }
 
     template<class U, std::size_t N>
-    [[nodiscard]] std::tuple<int32_t, int32_t> write(const std::array<U, N>& arr) const noexcept {
+    [[nodiscard]] expected_result write(const std::array<U, N>& arr) const noexcept {
         return file_.write(arr);
     }
 
-    [[nodiscard]] std::tuple<int32_t, int32_t> write(std::span<const std::byte> buffer) const noexcept {
+    [[nodiscard]] expected_result write(std::span<const std::byte> buffer) const noexcept {
         return file_.write(buffer);
     }
 
@@ -309,10 +309,10 @@ public:
 
 
 // Utility functions
-[[nodiscard]] int32_t make_fifo(std::string_view filename, int32_t mode  = open_mode::read_by_owner
-                                                                         | open_mode::write_by_owner
-                                                                         | open_mode::read_by_group
-                                                                         | open_mode::read_by_others) noexcept;
+[[nodiscard]] std::error_code make_fifo(std::string_view filename, int32_t mode = open_mode::read_by_owner
+                                                                                | open_mode::write_by_owner
+                                                                                | open_mode::read_by_group
+                                                                                | open_mode::read_by_others) noexcept;
 }
 
 #endif // DESCRIPTOR_FILE_H

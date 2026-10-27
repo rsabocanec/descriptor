@@ -20,18 +20,16 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <chrono>
 #include <atomic>
 #include <span>
-#include <tuple>
 #include <optional>
 #include <string_view>
 #include <iterator>
 #include <concepts>
+#include <expected>
+#include <system_error>
 #include <source_location>
 
 #include <cstdint>
 
-namespace std {
-class os;
-}
 
 namespace descriptor {
 
@@ -78,6 +76,7 @@ struct polled_state {
     void set_state(int16_t revents) noexcept;
 };
 
+using expected_result = std::expected<int32_t, std::error_code>;
 
 class descriptor {
 protected:
@@ -125,14 +124,14 @@ public:
         return old_descriptor;
     }
 
-    [[nodiscard]] int32_t duplicate(int32_t other) noexcept;
+    [[nodiscard]] std::error_code duplicate(int32_t other) noexcept;
 
-    [[nodiscard]] int32_t duplicate(const descriptor& other) noexcept {
+    [[nodiscard]] std::error_code duplicate(const descriptor& other) noexcept {
         if (this != &other) {
             return duplicate(other.descriptor_.load());
         }
 
-        return 0;
+        return {};
     }
 
     [[nodiscard]] int32_t release() noexcept {
@@ -140,63 +139,63 @@ public:
     }
 
 protected:
-    [[nodiscard]] virtual int32_t create() noexcept = 0;
+    [[nodiscard]] virtual std::error_code create() noexcept = 0;
 
 public:
-    [[nodiscard]] virtual int32_t close() noexcept;
+    [[nodiscard]] virtual std::error_code close() noexcept;
 
     template<std::random_access_iterator It>
-    [[nodiscard]] std::tuple<int32_t, int32_t> read(It first, std::size_t count) const noexcept {
+    [[nodiscard]] expected_result read(It first, std::size_t count) const noexcept {
         return read(std::as_writable_bytes(std::span(first, count)));
     }
 
     template<std::random_access_iterator It, class End>
-    [[nodiscard]] std::tuple<int32_t, int32_t> read(It first, End last) const noexcept {
+    [[nodiscard]] expected_result read(It first, End last) const noexcept {
         return read(std::as_writable_bytes(std::span(first, last)));
     }
 
     template<class U, std::size_t N>
-    [[nodiscard]] std::tuple<int32_t, int32_t> read(std::array<U, N>& arr) const noexcept {
+    [[nodiscard]] expected_result read(std::array<U, N>& arr) const noexcept {
         return read(std::as_writable_bytes(std::span(arr)));
     }
 
-    [[nodiscard]] virtual std::tuple<int32_t, int32_t> read(std::span<std::byte> buffer) const noexcept;
+    [[nodiscard]] virtual expected_result read(std::span<std::byte> buffer) const noexcept;
 
     template<std::random_access_iterator It>
-    [[nodiscard]] std::tuple<int32_t, int32_t> write(It first, std::size_t count) const noexcept {
+    [[nodiscard]] expected_result write(It first, std::size_t count) const noexcept {
         return write(std::as_bytes(std::span(first, count)));
     }
 
     template<std::random_access_iterator It, class End>
-    [[nodiscard]] std::tuple<int32_t, int32_t> write(It first, End last) const noexcept {
+    [[nodiscard]] expected_result write(It first, End last) const noexcept {
         return write(std::as_bytes(std::span(first, last)));
     }
 
     template<class U, std::size_t N>
-    [[nodiscard]] std::tuple<int32_t, int32_t> write(const std::array<U, N>& arr) const noexcept {
+    [[nodiscard]] expected_result write(const std::array<U, N>& arr) const noexcept {
         return write(std::as_bytes(std::span(arr)));
     }
 
-    [[nodiscard]] virtual std::tuple<int32_t, int32_t> write(std::span<const std::byte> buffer) const noexcept;
+    [[nodiscard]] virtual expected_result write(std::span<const std::byte> buffer) const noexcept;
 
-    [[nodiscard]] virtual std::tuple<int32_t, int32_t> splice(const descriptor& source, std::size_t count,
-                                                              std::optional<int32_t> offset_in = std::nullopt,
-                                                              std::optional<int32_t> offset_out = std::nullopt,
-                                                              uint32_t flags = 0ul) const noexcept;
+    [[nodiscard]] virtual expected_result splice(const descriptor& source, std::size_t count,
+                                                 std::optional<int32_t> offset_in = std::nullopt,
+                                                 std::optional<int32_t> offset_out = std::nullopt,
+                                                 uint32_t flags = 0ul) const noexcept;
 
     template <typename Period>
-    [[nodiscard]] int32_t select(duration<Period> &&timeout) const noexcept {
+    [[nodiscard]] std::error_code select(duration<Period> &&timeout) const noexcept {
         return select(std::chrono::duration_cast<std::chrono::nanoseconds>(timeout).count());
     }
 
     template <typename Period>
-    [[nodiscard]] int32_t poll(duration<Period> &&timeout, polled_state &state) const noexcept {
+    [[nodiscard]] std::error_code poll(duration<Period> &&timeout, polled_state &state) const noexcept {
         return poll(std::chrono::duration_cast<std::chrono::nanoseconds>(timeout).count(), state);
     }
 
 protected:
-    [[nodiscard]] int32_t select(int64_t timeout_nanoseconds) const noexcept;
-    [[nodiscard]] int32_t poll(int64_t timeout_nanoseconds, polled_state &state) const noexcept;
+    [[nodiscard]] std::error_code select(int64_t timeout_nanoseconds) const noexcept;
+    [[nodiscard]] std::error_code poll(int64_t timeout_nanoseconds, polled_state &state) const noexcept;
 };
 
 // Does not close the descriptor when destroyed
@@ -241,11 +240,9 @@ public:
 };
 
 // Utility functions
-[[nodiscard]] std::string_view error_description(int32_t error_code) noexcept;
-
-void report_error(std::ostream& os, int32_t error_num, std::string_view prefix = {},
+void report_error(std::ostream& os, const std::error_code &ec, std::string_view prefix = {},
     std::source_location location = std::source_location::current()) noexcept;
 
-[[nodiscard]] int32_t unlink(std::string_view filename) noexcept;
+[[nodiscard]] std::error_code unlink(std::string_view filename) noexcept;
 }
 #endif //DESCRIPTOR_DESCRIPTOR_H

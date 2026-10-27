@@ -33,20 +33,20 @@ auto main(int argc, char** argv)->int {
     constexpr std::string_view data = "Hello, memory-mapped file!";
 
     {
-    if (auto const open_result = mem_file_writer.open(mem_filename); open_result != 0) {
+    if (auto const open_result = mem_file_writer.open(mem_filename)) {
         logger->error("Failed to open memory file writer {} with result {}",
-            mem_filename, descriptor::error_description(open_result));
-        return open_result;
+            mem_filename, open_result.message());
+        return open_result.value();
     }
 
-    auto [result, bytes_read] = mem_file_writer.write(std::cbegin(data), std::cend(data));
-    if (result != 0) {
+    auto const result = mem_file_writer.write(std::cbegin(data), std::cend(data));
+    if (!result) {
         logger->error("Failed to write to memory file {} with result {}",
-            mem_filename, descriptor::error_description(result));
-        return result;
+            mem_filename, result.error().message());
+        return result.error().value();
     }
 
-    fmt::println("Wrote {} bytes to memory file {}: {}", bytes_read, mem_filename, data);
+    fmt::println("Wrote {} bytes to memory file {}: {}", result.value(), mem_filename, data);
 
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, "File size after writing is {} bytes\n", mem_file_writer.size());
     }
@@ -57,21 +57,21 @@ auto main(int argc, char** argv)->int {
     assert(mem_file_reader.valid());
 
     [[maybe_unused]] auto const reset_result = mem_file_reader.reset_position();
-    assert(reset_result == 0);
+    assert(!reset_result);
 
     fmt::print(fg(fmt::color::green) | fmt::emphasis::bold, "File size before reading is {} bytes\n", mem_file_reader.size());
 
     std::array<char, new_file_size> buffer{};
 
-    auto [result, bytes_read] = mem_file_reader.read(buffer);
-    if (result != 0) {
+    auto const result = mem_file_reader.read(buffer);
+    if (!result) {
         logger->error("Failed to read from memory file {} with result {}",
-            mem_filename, descriptor::error_description(result));
-        return result;
+            mem_filename, result.error().message());
+        return result.error().value();
     }
 
-    fmt::println("Read {} bytes from memory file {}: {}", bytes_read, mem_filename,
-            std::string_view(buffer.data(), bytes_read));
+    fmt::println("Read {} bytes from memory file {}: {}", result.value(), mem_filename,
+            std::string_view(buffer.data(), result.value()));
     }
 
     return EXIT_SUCCESS;

@@ -50,9 +50,9 @@ auto main(int argc, char **argv)->int {
         return EXIT_FAILURE;
     }
 
-    if (auto const result = publisher.bind(can_device); result != 0) {
-        logger->error("Failed to bind to {}: {}", can_device, descriptor::error_description(result));
-        return result;
+    if (auto const result = publisher.bind(can_device)) {
+        logger->error("Failed to bind to {}: {}", can_device, result.message());
+        return result.value();
     }
 
     std::vector<uint8_t> buffer(descriptor::can_socket_frame::can_frame_buffer_size);
@@ -74,25 +74,26 @@ auto main(int argc, char **argv)->int {
 
         frame.payload_length(can_payload_length_distrib(gen));
 
-        auto const [ser_result, ser_count] = frame.as_bytes(buffer.begin(), buffer.end());
+        auto const ser_result = frame.as_bytes(buffer.begin(), buffer.end());
 
-        if (ser_result != 0) {
-            logger->error("Failed to serialize CAN frame: {}, count: {}", ser_result, ser_count);
-            return ser_result;
+        if (!ser_result) {
+            logger->error("Failed to serialize CAN frame: {}, reason: {}", 
+                ser_result.error().value(), ser_result.error().message());
+            return ser_result.error().value();
         }
 
-        auto const [result, count] =
-            publisher.write(buffer.cbegin(), buffer.cbegin() + ser_count);
+        auto const result =
+            publisher.write(buffer.cbegin(), buffer.cbegin() + ser_result.value());
 
-        if (result != 0) {            
-            logger->error("Failed to send CAN payload: ({}) {}. Sent {} bytes", 
-                result, descriptor::error_description(result), count);
-            return result;
+        if (!result) {            
+            logger->error("Failed to send CAN payload: ({}) Reason: {}", 
+                result.error().value(), result.error().message());
+            return result.error().value();
         }
 
-        if (count != ser_count) {
+        if (result.value() != ser_result.value()) {
             logger->error("Failed to send CAN payload length ({}), sent {} instead", 
-                frame.payload_length(), count - 8);
+                frame.payload_length(), result.value() - 8);
         }
 
         std::this_thread::sleep_for(100ms);

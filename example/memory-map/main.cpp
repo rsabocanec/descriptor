@@ -32,16 +32,15 @@ auto main(int argc, char** argv)->int {
 
         auto result = file.open(filename);
 
-        if (result != 0) {
-            logger->error("Failed to open file {} with result {}",
-                filename, descriptor::error_description(result));
-            return result;
+        if (result) {
+            logger->error("Failed to open file {} with result {}", filename, result.message());
+            return result.value();
         }
 
         result = file.memory_map(descriptor::memory_map_access::write, new_file_size);
-        if (result != 0) {
-            logger->error("Failed to memory map file {} with result {}", filename, descriptor::error_description(result));
-            return result;
+        if (result) {
+            logger->error("Failed to memory map file {} with result {}", filename, result.message());
+            return result.value();
         }
 
         // Write some data to the memory-mapped region
@@ -54,14 +53,14 @@ auto main(int argc, char** argv)->int {
         descriptor::reader reader(filename);
 
         std::array<char, new_file_size> buffer{};
-        auto [read_result, bytes_read] = reader.read(buffer);
-        if (read_result != 0) {
+        auto const read_result = reader.read(buffer);
+        if (!read_result) {
             logger->error("Failed to read from file {} with result {}",
-                filename, descriptor::error_description(read_result));
-            return read_result;
+                filename, read_result.error().message());
+            return read_result.error().value();
         }
 
-        fmt::println("{}",std::string_view(buffer.data(), bytes_read));
+        fmt::println("{}",std::string_view(buffer.data(), read_result.value()));
     }
 
     return EXIT_SUCCESS;

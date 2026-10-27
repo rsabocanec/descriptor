@@ -50,14 +50,14 @@ static_assert(static_cast<int32_t>(descriptor::memory_map_sync_flags::sync) == M
 static_assert(static_cast<int32_t>(descriptor::memory_map_sync_flags::invalidate) == MS_INVALIDATE, "MS_INVALIDATE does not match descriptor::memory_map_sync_flags::invalidate");
 
 
-int32_t descriptor::basic_file::open(std::string_view path, int32_t flags, int32_t mode/* = 0*/) noexcept {
+std::error_code descriptor::basic_file::open(std::string_view path, int32_t flags, int32_t mode/* = 0*/) noexcept {
     descriptor_ = ::open(path.data(), flags, mode);
 
     if (descriptor_.load() == -1) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
-    return 0;
+    return {};
 }
 
 int64_t descriptor::basic_file::size() const noexcept {
@@ -73,50 +73,50 @@ int64_t descriptor::basic_file::size() const noexcept {
     return static_cast<int64_t>(st.st_size);
 }
 
-int32_t descriptor::basic_file::truncate(std::size_t size) const noexcept {
+std::error_code descriptor::basic_file::truncate(std::size_t size) const noexcept {
     if (descriptor_.load() == -1) {
-        return -1;
+        return std::make_error_code(std::errc::bad_file_descriptor);
     }
 
     auto const result = ::ftruncate(descriptor_.load(), static_cast<off_t>(size));
     if (result == -1) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
-    return 0;
+    return {};
 }
 
-int32_t descriptor::basic_file::seek(seek_position position, int64_t offset, int64_t &new_offset) const noexcept {
+std::error_code descriptor::basic_file::seek(seek_position position, int64_t offset, int64_t &new_offset) const noexcept {
     new_offset = 0;
 
     if (descriptor_.load() == -1) {
-        return EINVAL;
+        return std::make_error_code(std::errc::bad_file_descriptor);
     }
 
     auto const result = ::lseek(descriptor_.load(), static_cast<off_t>(offset), static_cast<int32_t>(position));
     if (result == -1) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
     new_offset = static_cast<int64_t>(result);
-    return 0;
+    return {};
 }
 
-int32_t descriptor::file::memory_map(memory_map_access access, std::size_t size/* = 0644*/) noexcept {
+std::error_code descriptor::file::memory_map(memory_map_access access, std::size_t size/* = 0644*/) noexcept {
     if (descriptor_.load() == -1) {
-        return -1;
+        return std::make_error_code(std::errc::bad_file_descriptor);
     }
 
     struct stat st {};
     if (::fstat(descriptor_.load(), &st) == -1) {
-        return -1;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
     if (memory_map_addr_ != nullptr) {
         // Memory is already mapped
         auto const unmap_result = ::munmap(memory_map_addr_, memory_map_length_);
         if (unmap_result == -1) {
-            return errno;
+            return std::make_error_code(static_cast<std::errc>(errno));
         }
     }
 
@@ -127,7 +127,7 @@ int32_t descriptor::file::memory_map(memory_map_access access, std::size_t size/
         // If the requested size is greater than the current file size, truncate the file
         auto const truncate_result = ::ftruncate(descriptor_.load(), static_cast<off_t>(size));
         if (truncate_result == -1) {
-            return errno;
+            return std::make_error_code(static_cast<std::errc>(errno));
         }
     }
 
@@ -138,74 +138,74 @@ int32_t descriptor::file::memory_map(memory_map_access access, std::size_t size/
                                 MAP_SHARED, descriptor_.load(), 0);
 
     if (result == MAP_FAILED) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
     memory_map_addr_ = result;
     memory_map_length_ = length;
 
-    return 0;
+    return {};
 }
 
-int32_t descriptor::file::memory_unmap() noexcept {
+std::error_code descriptor::file::memory_unmap() noexcept {
     if (memory_map_addr_ == nullptr) {
-        return 0; // Nothing to unmap
+        return {}; // Nothing to unmap
     }
 
     auto const result = ::munmap(memory_map_addr_, memory_map_length_);
     if (result == -1) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
     memory_map_addr_ = nullptr;
     memory_map_length_ = 0;
 
-    return 0;
+    return {};
 }
 
-int32_t descriptor::file::memory_sync(memory_map_sync_flags flags) noexcept {
+std::error_code descriptor::file::memory_sync(memory_map_sync_flags flags) noexcept {
     if (memory_map_addr_ == nullptr) {
-        return 0; // Nothing to sync
+        return {}; // Nothing to sync
     }
 
     auto const result = ::msync(memory_map_addr_, memory_map_length_, static_cast<int32_t>(flags));
     if (result == -1) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
-    return 0;
+    return {};
 }
 
-int32_t descriptor::file::memory_lock(std::size_t size/* = 0*/) noexcept {
+std::error_code descriptor::file::memory_lock(std::size_t size/* = 0*/) noexcept {
     if (memory_map_addr_ == nullptr) {
-        return 0; // Nothing to lock
+        return {}; // Nothing to lock
     }
 
     const std::size_t length = size == 0 ? memory_map_length_ : size;
 
     auto const result = ::mlock2(memory_map_addr_, length, MLOCK_ONFAULT);
     if (result == -1) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
     memory_lock_length_ = length;
 
-    return 0;
+    return {};
 }
 
-int32_t descriptor::file::memory_unlock() noexcept {
+std::error_code descriptor::file::memory_unlock() noexcept {
     if (memory_map_addr_ == nullptr || memory_lock_length_ == 0) {
-        return 0; // Nothing to unlock
+        return {}; // Nothing to unlock
     }
 
     auto const result = ::munlock(memory_map_addr_, memory_lock_length_);
     if (result == -1) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
     memory_lock_length_ = 0;
 
-    return 0;
+    return {};
 }
 
 
@@ -239,18 +239,21 @@ static_assert(descriptor::memory_file_flags::huge_16GB	== HUGETLB_FLAG_ENCODE_16
               "descriptor::memory_file_flags::huge_64KB does not match HUGETLB_FLAG_ENCODE_64KB");
 
 
-int32_t descriptor::memory_file::open(std::string_view path, int32_t flags, int32_t) noexcept {
+std::error_code descriptor::memory_file::open(std::string_view path, int32_t flags, int32_t) noexcept {
     descriptor_ = ::memfd_create(path.data(), static_cast<unsigned int>(flags));
 
     if (descriptor_.load() == -1) {
-        return errno;
+        return std::make_error_code(static_cast<std::errc>(errno));
     }
 
-    return 0;
+    return {};
 }
 
 // Utility functions
-int32_t descriptor::make_fifo(std::string_view filename, int32_t mode) noexcept {
-    const int32_t result = ::mkfifo(filename.data(), mode);
-    return result == -1 ? errno : 0;
+std::error_code descriptor::make_fifo(std::string_view filename, int32_t mode) noexcept {
+    if (const int32_t result = ::mkfifo(filename.data(), mode); result == -1) {
+        return std::make_error_code(static_cast<std::errc>(errno));
+    }
+
+    return {};
 }
