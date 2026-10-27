@@ -40,9 +40,9 @@ auto main(int argc, char **argv)->int {
     descriptor::tcp_socket client{};
 
     auto result = client.connect(server_address, server_port);
-    if (result != 0) {
+    if (result) {
         logger->error("Failed to connect to {}:{} with error {} '{}'", 
-            server_address, server_port, result, descriptor::error_description(result));;
+            server_address, server_port, result.value(), result.message());
     }
     else {
         std::string request{};
@@ -76,8 +76,8 @@ auto main(int argc, char **argv)->int {
         fmt::print(fg(fmt::color::green), "\nDisconnecting!\n");
 
         result = client.disconnect();
-        if (result != 0) {
-            logger->error("Disconnect failed; {} '{}'", result, descriptor::error_description(result));
+        if (result) {
+            logger->error("Disconnect failed; {} '{}'", result.value(), result.message());
         }
     }
 

@@ -51,9 +51,9 @@ auto main(int argc, char **argv)->int {
         return EXIT_FAILURE;
     }
 
-    if (auto const result = descriptor::make_fifo(fifo_path); result != 0) {
+    if (auto const result = descriptor::make_fifo(fifo_path)) {
         logger->error("Failed to create fifo file {}, with error {} {}!", 
-            fifo_path, result, descriptor::error_description(result));
+            fifo_path, result.value(), result.message());
         return EXIT_FAILURE;
     }
 
@@ -70,15 +70,15 @@ auto main(int argc, char **argv)->int {
             run = false;
         }
         else {
-            auto const [result, count] = fifo_writer.write(std::cbegin(request), std::cend(request));
-            if (result != 0) {
+            auto const result = fifo_writer.write(std::cbegin(request), std::cend(request));
+            if (!result) {
                 logger->error("Failed to write to '{}' fifo, with error {} {}",
-                    fifo_path, result, descriptor::error_description(result));
+                    fifo_path, result.error().value(), result.error().message());
 
                 run = false;
             }
             else {
-                logger->info("Wrote {} bytes to the '{}' fifo file", count, fifo_path);
+                logger->info("Wrote {} bytes to the '{}' fifo file", result.value(), fifo_path);
             }
         }
     }

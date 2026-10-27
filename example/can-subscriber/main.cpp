@@ -64,10 +64,10 @@ auto main(int argc, char **argv)->int {
     descriptor::can_socket subscriber{};
     g_subscriber = &subscriber;
     
-    if (auto const result = subscriber.bind(can_device); result != 0) {
+    if (auto const result = subscriber.bind(can_device)) {
         logger->error("Failed to bind to {} with result {} {}", 
-            can_device, result, descriptor::error_description(result));
-        return result;
+            can_device, result.value(), result.message());
+        return result.value();
     }
 
     std::vector<uint8_t> buffer(descriptor::can_socket_frame::can_frame_buffer_size);

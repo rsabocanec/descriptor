@@ -39,7 +39,7 @@ auto main(int argc, char** argv) -> int {
     descriptor::timer t;
 
     std::promise<std::errc> promise{};
-    std::future<std::errc> future = promise.get_future();
+    auto future = promise.get_future();
 
     t.arm(1s, std::move(promise), []() {
         static int32_t counter = 0;
@@ -70,7 +70,7 @@ auto main(int argc, char** argv) -> int {
         descriptor::report_error(std::cerr, result);
     }
 
-    result = future.get();
+    result = std::make_error_code(future.get());
 
     if (result) {
         descriptor::report_error(std::cerr, result);
@@ -82,7 +82,7 @@ auto main(int argc, char** argv) -> int {
     descriptor::deadline dl;
 
     std::promise<std::errc> promise{};
-    std::future<std::errc> future = promise.get_future();
+    auto future = promise.get_future();
 
     dl.arm(2s, std::move(promise), []() {
         static int32_t counter = 0;
@@ -91,7 +91,7 @@ auto main(int argc, char** argv) -> int {
 
     std::this_thread::sleep_for(7500ms);
 
-    auto const result = future.get();
+    auto const result = std::make_error_code(future.get());
 
     if (result) {
         descriptor::report_error(std::cerr, result);

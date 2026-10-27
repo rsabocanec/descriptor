@@ -49,12 +49,11 @@ auto main(int argc, char **argv)->int {
         std::cin >> request;
 
         {
-        auto [result, count] =
-            client.write_to(request.cbegin(), request.cend(), server_address, server_port);
+        auto result = client.write_to(request.cbegin(), request.cend(), server_address, server_port);
 
-        if (result != 0) {
+        if (result) {
             logger->error("Failed to send to {}:{} with error {} '{}'", 
-                server_address, server_port, result, descriptor::error_description(result));
+                server_address, server_port, result.error().value(), result.error().message());
             break;
         }
         }
@@ -62,17 +61,16 @@ auto main(int argc, char **argv)->int {
         std::string receive_address{};
         uint16_t receive_port{};
 
-        auto [result, count] =
-            client.read_from(buffer,receive_address,receive_port);
+        auto result = client.read_from(buffer,receive_address,receive_port);
 
-        if (result != 0) {
+        if (result) {
             logger->error("Failed to receive from {}:{} with error {} '{}'", 
-                receive_address, receive_port, result, descriptor::error_description(result));
+                receive_address, receive_port, result.error().value(), result.error().message());
             break;
         }
         else {
-            response = std::string(static_cast<const char*>(static_cast<const void*>(buffer.data())), count);
-            logger->info("Received '{}' ({} bytes) from {}:{}", response, count, receive_address, receive_port);
+            response = std::string(static_cast<const char*>(static_cast<const void*>(buffer.data())), result.value());
+            logger->info("Received '{}' ({} bytes) from {}:{}", response, result.value(), receive_address, receive_port);
             fmt::print(fg(fmt::color::light_green), "Received {}\n", response);
         }
         }

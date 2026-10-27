@@ -229,7 +229,7 @@ std::error_code descriptor::poll(int64_t timeout_nanoseconds, polled_state &stat
 }
 
 // Utility functions
-void report_error(std::ostream& os, std::error_code ec, std::string_view prefix,
+void report_error(std::ostream& os, const std::error_code &ec, std::string_view prefix,
                   std::source_location location) noexcept {
     os  << prefix << "Error " << ec.value() << " (" << ec.category().name() << "): "
         << '[' << ec.message() << "]\t"

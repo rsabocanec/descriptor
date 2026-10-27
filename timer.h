@@ -125,7 +125,7 @@ protected:
                 }, std::forward<std::promise<std::errc>>(promise), std::move(decay_copied)).detach();
             }
             else {
-                promise.set_value(result.value());
+                promise.set_value(static_cast<std::errc>(result.value()));
             }
         }
     }

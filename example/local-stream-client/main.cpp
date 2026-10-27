@@ -27,8 +27,8 @@ auto main(int argc, char **argv)->int {
     }
 
     auto result = client.connect(server_path);
-    if (result != 0) {
-        std::cerr << "Connect failed; " << descriptor::error_description(result) << '\n';
+    if (result) {
+        std::cerr << "Connect failed; " << result.message() << '\n';
     }
     else {
         std::string request{};
@@ -59,8 +59,8 @@ auto main(int argc, char **argv)->int {
         } while (request != "bye");
 
         result = client.disconnect();
-        if (result != 0) {
-            std::cerr << "Disconnect failed; " << descriptor::error_description(result) << '\n';
+        if (result) {
+            std::cerr << "Disconnect failed; " << result.message() << '\n';
         }
     }
 

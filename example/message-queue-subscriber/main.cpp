@@ -42,20 +42,21 @@ namespace {
 
         descriptor::message_queue::attributes attr{};
 
-        if (auto const attr_result = weak_mq.load().get_attributes(attr); attr_result != 0) {
+        if (auto const attr_result = weak_mq.load().get_attributes(attr)) {
             stop_flag = true;
             fmt::print(fg(  fmt::color::crimson), "Failed to get attributes, with error {} {}",
-                            attr_result, descriptor::error_description(attr_result));
+                            attr_result.value(), attr_result.message());
         }
         else {
             auto receive_buffer = std::make_unique<uint8_t[]>(attr.max_msg_size_);
 
-            auto [result, count] = weak_mq.load().read(std::as_writable_bytes(std::span(receive_buffer.get(), attr.max_msg_size_)));
+            auto const result = weak_mq.load().read(
+                std::as_writable_bytes(std::span(receive_buffer.get(), attr.max_msg_size_)));
 
-            fmt::println("Received {} bytes:", count);
+            if (result.has_value()) {
+                fmt::println("Received {} bytes:", result.value());
 
-            if (result == 0) {
-                for (auto i = 0; i < count; ++i) {
+                for (auto i = 0; i < result.value(); ++i) {
                     fmt::print("0x{:02x} ", static_cast<uint16_t>(receive_buffer[i]));
                 }
 
@@ -63,24 +64,24 @@ namespace {
             }
             else {
                 fmt::print( fg(fmt::color::crimson), "Failed to read from the message queue, with error {} {}\n",
-                            result, descriptor::error_description(result));
+                            result.error().value(), result.error().message());
 
                 stop_flag = true;
             }
         }
 
-        if (auto const attr_result = weak_mq.load().get_attributes(attr); attr_result != 0) {
+        if (auto const attr_result = weak_mq.load().get_attributes(attr)) {
             stop_flag = true;
             fmt::print(fg(  fmt::color::crimson), "Failed to get attributes, with error {} {}",
-                            attr_result, descriptor::error_description(attr_result));
+                            attr_result.value(), attr_result.message());
         }
         else {
             fmt::println("Messages left in the queue: {}", attr.current_msg_count_);
         }
 
-        if (auto const notify_result = weak_mq.load().notify(incoming_handler); notify_result != 0) {
+        if (auto const notify_result = weak_mq.load().notify(incoming_handler)) {
             fmt::print( fg(fmt::color::crimson), "Failed to notify message queue {} with result {} {}\n",
-                        *mq_desc, notify_result, descriptor::error_description(notify_result));
+                        *mq_desc, notify_result.value(), notify_result.message());
             stop_flag = true;
         }
         else {
@@ -115,16 +116,16 @@ auto main(int argc, char **argv)->int {
 
     std::unique_ptr<descriptor::basic_file> subscriber{new descriptor::message_queue};
 
-    if (auto const result = subscriber->open(message_queue_name); result != 0) {
+    if (auto const result = subscriber->open(message_queue_name)) {
         logger->error("Failed to open message queue {} with result {} {}",
-            message_queue_name, result, descriptor::error_description(result));
-        return result;
+            message_queue_name, result.value(), result.message());
+        return result.value();
     }
 
-    if (auto const result = dynamic_cast<descriptor::message_queue*>(subscriber.get())->notify(incoming_handler); result != 0) {
+    if (auto const result = dynamic_cast<descriptor::message_queue*>(subscriber.get())->notify(incoming_handler)) {
         logger->error("Failed to notify message queue {} with result {} {}",
-            message_queue_name, result, descriptor::error_description(result));
-        return result;
+            message_queue_name, result.value(), result.message());
+        return result.value();
     }
 
     while (!stop_flag.load()) {
@@ -133,9 +134,9 @@ auto main(int argc, char **argv)->int {
 
     std::this_thread::sleep_for(2s);
 
-    if (auto const result = subscriber->close(); result != 0) {
+    if (auto const result = subscriber->close()) {
         logger->error("Failed to close message queue {} with result {} {}",
-            message_queue_name, result, descriptor::error_description(result));
+            message_queue_name, result.value(), result.message());
     }
 
     fmt::print(fg(fmt::color::green), "\nEXIT!\n");

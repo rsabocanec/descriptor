@@ -50,17 +50,17 @@ auto main(int argc, char **argv)->int {
         return EXIT_FAILURE;
     }
 
-    if (auto const result = publisher->open(message_queue_name); result != 0) {
+    if (auto const result = publisher->open(message_queue_name)) {
         logger->error("Failed to open message queue {} with result {} {}", 
-            message_queue_name, result, descriptor::error_description(result));
-        return result;
+            message_queue_name, result.value(), result.message());
+        return result.value();
     }
 
     descriptor::message_queue::attributes attr{};
 
-    if (auto const result = dynamic_cast<descriptor::message_queue*>(publisher.get())->get_attributes(attr); result != 0) {
+    if (auto const result = dynamic_cast<descriptor::message_queue*>(publisher.get())->get_attributes(attr)) {
         logger->error("Failed to get message queue attributes, with error {} {}", 
-            result, descriptor::error_description(result));
+            result.value(), result.message());
         return EXIT_FAILURE;
     }
 
@@ -87,25 +87,24 @@ auto main(int argc, char **argv)->int {
 
         fmt::println("");
 
-        auto const [result, count] =
-            publisher->write(buffer.cbegin(), len);
+        auto const result = publisher->write(buffer.cbegin(), len);
 
-        if (result != 0) {            
-            logger->error("Failed to send data to message queue: ({}) {}. Sent {} bytes", 
-                result, descriptor::error_description(result), count);
-            return result;
+        if (!result) {            
+            logger->error("Failed to send data to message queue: ({}) Reason: {}", 
+                result.error().value(), result.error().message());
+            return result.error().value();
         }
         else {
-            logger->info("Sent {} bytes", count);
-            fmt::println("Sent {} bytes", count);
+            logger->info("Sent {} bytes", result.value());
+            fmt::println("Sent {} bytes", result.value());
         }
 
-        if (count != len) {
+        if (result.value() != len) {
             logger->error("Failed to send data of length {} to message queue, sent {} instead", 
-                len, count);
+                len, result.value());
         }
         else {
-            for (auto i = 0; i < count; ++i) {
+            for (auto i = 0; i < result.value(); ++i) {
                 fmt::print("0x{:02x} ", static_cast<uint16_t>(buffer[i]));
             }
 

@@ -37,10 +37,10 @@ auto main(int argc, char **argv)->int {
         return EXIT_FAILURE;
     }
 
-    if (auto const result = server.bind(server_address, server_port); result != 0) {
+    if (auto const result = server.bind(server_address, server_port)) {
         logger->error("Failed to bind to {}:{} with result {} '{}'", 
-            server_address, server_port, result, descriptor::error_description(result));
-        return result;
+            server_address, server_port, result.value(), result.message());
+        return result.value();
     }
 
     std::array<uint8_t, 4096> buffer{};
@@ -55,7 +55,7 @@ auto main(int argc, char **argv)->int {
         auto const result =
             server.read_from(buffer, receive_address, receive_port);
 
-        if (!result) {
+        if (result) {
             logger->error("Failed to receive from {}:{} with error {} '{}'", 
                 receive_address, receive_port, result.error().value(), result.error().message());
             break;
@@ -70,12 +70,13 @@ auto main(int argc, char **argv)->int {
         auto const result =
             server.write_to(request.cbegin(), request.cend(), receive_address, receive_port);
 
-        if (!result) {
+        if (result) {
             logger->error("Failed to send to {}:{} with error {} '{}'", 
                 receive_address, receive_port, result.error().value(), result.error().message());
             break;
         }
         }
     }
+
     return EXIT_SUCCESS;
 }

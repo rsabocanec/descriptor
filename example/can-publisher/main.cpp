@@ -50,9 +50,9 @@ auto main(int argc, char **argv)->int {
         return EXIT_FAILURE;
     }
 
-    if (auto const result = publisher.bind(can_device); result != 0) {
-        logger->error("Failed to bind to {}: {}", can_device, descriptor::error_description(result));
-        return result;
+    if (auto const result = publisher.bind(can_device)) {
+        logger->error("Failed to bind to {}: {}", can_device, result.message());
+        return result.value();
     }
 
     std::vector<uint8_t> buffer(descriptor::can_socket_frame::can_frame_buffer_size);

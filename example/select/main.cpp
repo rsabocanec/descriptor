@@ -38,29 +38,30 @@ auto main(int argc, char **argv)->int {
 
         auto const select_result = reader.select(100ms);
 
-        switch (select_result) {
-            case 0: {
-                    auto const [read_error, bytes_read] = reader.read(buffer);
-                    if (read_error != 0) {
-                        logger->error("Read failed; {}", descriptor::error_description(read_error));
-                        return EXIT_FAILURE;
-                    }
-                    else if (bytes_read == 0) {
-                        logger->info("Read completed!");
-                        read_completed = true;
-                    }
-                    else {
-                        logger->info("Read: {}", std::string_view(buffer.cbegin(), bytes_read));
-                    }
-                }
-                break;
-            case ETIMEDOUT:
-                fmt::print(" . ");
-                std::this_thread::sleep_for(1s);
-                continue;
-            default:
-                logger->error("Select failed; {}", descriptor::error_description(select_result));
+        if (!select_result) {
+            auto const read_result = reader.read(buffer);
+            if (!read_result) {
+                logger->error("Read failed; {}", read_result.error().message());
                 return EXIT_FAILURE;
+            }
+            else if (read_result.value() == 0) {
+                logger->info("Read completed!");
+                read_completed = true;
+            }
+            else {
+                logger->info("Read: {}", std::string_view(buffer.cbegin(), read_result.value()));
+            }
+        }
+        else {
+            switch (select_result.value()) {
+                case static_cast<int>(std::errc::timed_out):
+                    fmt::print(" . ");
+                    std::this_thread::sleep_for(1s);
+                    break;
+                default:
+                    logger->error("Select failed; {}", select_result.message());
+                    return EXIT_FAILURE;
+            }
         }
     }
 

@@ -53,17 +53,17 @@ auto main(int argc, char** argv)->int {
     descriptor::file file{};
 
     auto result = file.open(filename, descriptor::open_flags::read_only);
-    if (result != 0) {
+    if (result) {
         logger->error("Failed to open file {} with result {} '{}'", 
-            filename, result, descriptor::error_description(result));
-        return result;
+            filename, result.value(), result.message());
+        return result.value();
     }
 
     descriptor::tcp_socket client{};
 
     result = client.connect(address, port);
-    if (result != 0) {
-        logger->error("Connect to {}:{} failed; {}", address, port, descriptor::error_description(result));
+    if (result) {
+        logger->error("Connect to {}:{} failed; {}", address, port, result.message());
     }
     else {
         auto const splice_result = client.splice(file, file.size());
@@ -78,15 +78,15 @@ auto main(int argc, char** argv)->int {
         fmt::print(fg(fmt::color::green), "\nDisconnecting!\n");
 
         result = client.disconnect();
-        if (result != 0) {
-            logger->error("Disconnect failed; {}", descriptor::error_description(result));
+        if (result) {
+            logger->error("Disconnect failed; {}", result.message());
         }
     }
 
     result = file.close();
-    if (result != 0) {
+    if (result) {
         logger->error("Failed to close file {} with error {} '{}'", 
-            filename, result, descriptor::error_description(result));
+            filename, result.value(), result.message());
     }
 
     fmt::print(fg(fmt::color::green), "\nEXIT!\n");

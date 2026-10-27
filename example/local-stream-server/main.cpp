@@ -54,13 +54,13 @@ auto main(int argc, char **argv)->int {
     g_server = &server;
 
     auto result = server.bind(server_path);
-    if (result != 0) {
-        std::cerr << "bind failed; " << descriptor::error_description(result) << '\n';
+    if (result) {
+        std::cerr << "bind failed; " << result.message() << '\n';
     }
     else {
         result = server.listen();
-        if (result != 0) {
-            std::cerr << "listen faeled: " << descriptor::error_description(result) << '\n';
+        if (result) {
+            std::cerr << "listen failed: " << result.message() << '\n';
         }
         else {
             auto accept_result = server.accept();
@@ -76,30 +76,28 @@ auto main(int argc, char **argv)->int {
                     do {
                         auto const read_result = acceptor.read(request);
 
-                        read_error = std::get<0>(read_result);
-                        bytes_read = std::get<1>(read_result);
-
-                        if (read_error != 0) {
-                            std::cerr << "read failed; " << descriptor::error_description(read_error) << '\n';
+                        if (!read_result) {
+                            std::cerr << "read failed; " << read_result.error().message() << '\n';
+                            break;
                         }
-                        else if (bytes_read == 0) {
+                        else if (read_result.value() == 0) {
                             std::cout << "Connection from " << acceptor.peer() << " has been closed!\n";
+                            break;
                         }
                         else {
-                            const std::string_view response(request.cbegin(), bytes_read);
+                            const std::string_view response(request.cbegin(), read_result.value());
                             std::cout << "Received '" << response << "'\n";
 
-                            auto const [write_result, bytes_written] =
-                                acceptor.write(response.cbegin(), response.cend());
+                            auto const write_result = acceptor.write(response.cbegin(), response.cend());
 
-                            if (write_result != 0) {
-                                std::cerr << "write failed; " << descriptor::error_description(write_result) << '\n';
+                            if (!write_result) {
+                                std::cerr << "write failed; " << write_result.error().message() << '\n';
                             }
                             else {
                                 std::cout << "Sent '" << response << "'\n";
                             }
                         }
-                    } while (read_error == 0 && bytes_read > 0);
+                    } while (true);
 
                     [[maybe_unused]] auto shutdown_result = acceptor.shutdown();
                 }, std::move(accept_result.value())).detach();
@@ -107,7 +105,7 @@ auto main(int argc, char **argv)->int {
                 accept_result = server.accept();
             }
 
-            std::cerr << "accept failed: " << descriptor::error_description(accept_result.error()) << '\n';
+            std::cerr << "accept failed: " << accept_result.error().message() << '\n';
         }
     }
 

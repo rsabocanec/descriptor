@@ -240,7 +240,7 @@ public:
 };
 
 // Utility functions
-void report_error(std::ostream& os, std::error_code&& ec, std::string_view prefix = {},
+void report_error(std::ostream& os, const std::error_code &ec, std::string_view prefix = {},
     std::source_location location = std::source_location::current()) noexcept;
 
 [[nodiscard]] std::error_code unlink(std::string_view filename) noexcept;

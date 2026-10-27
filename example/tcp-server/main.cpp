@@ -46,15 +46,15 @@ auto main(int argc, char **argv)->int {
     g_server = &server;
 
     auto result = server.bind(server_address, server_port);
-    if (result != 0) {
-        logger->error("Bind failed; {} '{}'", result, descriptor::error_description(result));
+    if (result) {
+        logger->error("Bind failed; {} '{}'", result.value(), result.message());
     }
     else {
         logger->info("Server bound to {}:{}", server_address, server_port);
 
         result = server.listen();
-        if (result != 0) {
-            logger->error("Listen failed; {} '{}'", result, descriptor::error_description(result));
+        if (result) {
+            logger->error("Listen failed; {} '{}'", result.value(), result.message());
         }
         else {
             logger->info("Server listening on {}:{}", server_address, server_port);
