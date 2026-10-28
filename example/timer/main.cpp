@@ -48,6 +48,10 @@ auto main(int argc, char** argv) -> int {
 
     std::this_thread::sleep_for(7500ms);
 
+    fmt::print(fg(fmt::color::orange), "Waited 7.5s, wait for timer thread to finish\n");
+
+    fmt::print(fg(fmt::color::orange), "Rearming timer for 2.5s\n");
+
     auto result = t.arm(2500ms);
 
     if (result) {
@@ -55,6 +59,10 @@ auto main(int argc, char** argv) -> int {
     }
 
     std::this_thread::sleep_for(7400ms);
+
+    fmt::print(fg(fmt::color::orange), "Waited 7.4s, wait for timer thread to execute\n");
+
+    fmt::print(fg(fmt::color::orange), "Rearming timer for 0.5s\n");
 
     result = t.arm(500ms);
 
@@ -64,13 +72,21 @@ auto main(int argc, char** argv) -> int {
 
     std::this_thread::sleep_for(4900ms);
 
+    fmt::print(fg(fmt::color::orange), "Waited 4.9s, wait for timer thread to execute\n");
+
+    fmt::print(fg(fmt::color::orange), "Disarming timer\n");
+
     result = t.disarm();
 
     if (result) {
         descriptor::report_error(std::cerr, result);
     }
 
+    fmt::print(fg(fmt::color::orange), "Waiting for timer thread to finish!\n");
+
     result = std::make_error_code(future.get());
+
+    fmt::print(fg(fmt::color::orange), "Timer thread finished\n");
 
     if (result) {
         descriptor::report_error(std::cerr, result);
@@ -84,14 +100,15 @@ auto main(int argc, char** argv) -> int {
     std::promise<std::errc> promise{};
     auto future = promise.get_future();
 
-    dl.arm(2s, std::move(promise), []() {
-        static int32_t counter = 0;
-        fmt::print(fg(fmt::color::yellow), "{}\n", ++counter);
+    dl.arm(5s, std::move(promise), []() {
+        fmt::print(fg(fmt::color::yellow), "Deadline expired after 5 seconds!\n");
     });
 
-    std::this_thread::sleep_for(7500ms);
+    fmt::print(fg(fmt::color::orange), "Waiting for deadline result!\n");
 
     auto const result = std::make_error_code(future.get());
+
+    fmt::print(fg(fmt::color::orange), "Deadline expired\n");
 
     if (result) {
         descriptor::report_error(std::cerr, result);

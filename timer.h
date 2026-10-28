@@ -22,6 +22,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <chrono>
 #include <thread>
 #include <future>
+#include <mutex>
 #include <tuple>
 #include <utility>
 #include <type_traits>
@@ -53,6 +54,7 @@ enum class clock_type : int {
 class timer : public descriptor {
 protected:
     clock_type clock_type_{clock_type::clock_monotonic};
+    mutable std::mutex wait_mutex_{};
 
     public:
     timer() noexcept {
