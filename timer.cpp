@@ -27,6 +27,8 @@ std::error_code timer::disarm() const noexcept {
         .it_interval = {.tv_sec = 0, .tv_nsec = 0},
         .it_value = {.tv_sec = 0, .tv_nsec = 0}};
 
+    // Acquire a mutex
+    const std::lock_guard<std::mutex> lock(wait_mutex_);
     if (::timerfd_settime(descriptor_, TFD_TIMER_ABSTIME, &its, nullptr) == -1) {
         return std::make_error_code(static_cast<std::errc>(errno));
     }
@@ -54,6 +56,8 @@ std::error_code timer::wait() const noexcept {
 
     uint64_t exp{};
 
+    // Acquire a mutex
+    const std::lock_guard<std::mutex> lock(wait_mutex_);
     switch (::read(descriptor_, &exp, sizeof(exp))) {
         case -1:
             return std::make_error_code(static_cast<std::errc>(errno));
@@ -97,6 +101,8 @@ std::error_code timer::arm(int64_t nanoseconds) const noexcept {
         .it_value = {.tv_sec = std::get<2>(interval), .tv_nsec = std::get<3>(interval)}
     };
 
+    // Acquire a mutex
+    const std::lock_guard<std::mutex> lock(wait_mutex_);
     if (::timerfd_settime(descriptor_, TFD_TIMER_ABSTIME, &its, nullptr) == -1) {
         return std::make_error_code(static_cast<std::errc>(errno));
     }
