@@ -2,6 +2,7 @@
 
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <unistd.h>
 
 namespace descriptor {
 
@@ -36,13 +37,13 @@ std::error_code local_datagram_socket::bind(std::string_view address) noexcept {
                     static_cast<const struct sockaddr *>(static_cast<const void*>(&local_address)),
                     sizeof(local_address.sun_family) + address.length()) == -1) {
         return std::make_error_code(static_cast<std::errc>(errno));
-                    }
+    }
 
     return {};
 }
 
 expected_result local_datagram_socket::read_from(
-    std::span<std::byte> buffer, std::string &address) const noexcept {
+    std::span<std::byte> buffer, std::string &address) noexcept {
 
     if (descriptor_.load() != -1) {
         struct sockaddr_un local_address{
@@ -73,7 +74,7 @@ expected_result local_datagram_socket::read_from(
 }
 
 expected_result local_datagram_socket::write_to(
-    std::span<const std::byte> buffer, std::string_view address) const noexcept {
+    std::span<const std::byte> buffer, std::string_view address) noexcept {
 
     if (descriptor_.load() != -1) {
         struct sockaddr_un local_address{

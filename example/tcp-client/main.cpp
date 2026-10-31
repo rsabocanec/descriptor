@@ -15,19 +15,10 @@ auto main(int argc, char **argv)->int {
         argc, argv, {server_address_option, server_port_option}, "Test TCP client");
 
     std::string server_address{};
-
-    try {
-        server_address = app->get_option("--address")->as<std::string>();
-    }
-    catch (const CLI::OptionNotFound &onf) {
-        logger->critical(onf.what());
-        fmt::print(fg(fmt::color::crimson), "{}\n", onf.what());
-        return EXIT_FAILURE;
-    }
-
     uint16_t server_port{};
 
     try {
+        server_address = app->get_option("--address")->as<std::string>();
         server_port = app->get_option("--port")->as<uint16_t>();
     }
     catch (const CLI::OptionNotFound &onf) {
@@ -35,9 +26,10 @@ auto main(int argc, char **argv)->int {
         fmt::print(fg(fmt::color::crimson), "{}\n", onf.what());
         return EXIT_FAILURE;
     }
-
     
     descriptor::tcp_socket client{};
+
+    logger->info("Connecting to {}:{}", server_address, server_port);
 
     auto result = client.connect(server_address, server_port);
     if (result) {
@@ -45,6 +37,8 @@ auto main(int argc, char **argv)->int {
             server_address, server_port, result.value(), result.message());
     }
     else {
+        logger->info("Connected to {}:{}", server_address, server_port);
+
         std::string request{};
 
         do {
@@ -69,6 +63,7 @@ auto main(int argc, char **argv)->int {
                 else {
                     logger->info("Received '{}' ({} bytes)\n", 
                         std::string_view(response.cbegin(), read_result.value()), read_result.value());
+                    fmt::println("Received {}", std::string_view(response.cbegin(), read_result.value()));
                 }
             }
         } while (request != "bye");

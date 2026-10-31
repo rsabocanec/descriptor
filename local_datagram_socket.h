@@ -28,10 +28,10 @@ public:
     [[nodiscard]] std::error_code bind(std::string_view address) noexcept final;
 
     [[nodiscard]] expected_result
-        read_from(std::span<std::byte> buffer, std::string &address) const noexcept final;
+        read_from(std::span<std::byte> buffer, std::string &address) noexcept final;
 
     [[nodiscard]] expected_result
-        write_to(std::span<const std::byte> buffer, std::string_view address) const noexcept final;
+        write_to(std::span<const std::byte> buffer, std::string_view address) noexcept final;
 
 protected:
     [[nodiscard]] std::error_code create() noexcept final;

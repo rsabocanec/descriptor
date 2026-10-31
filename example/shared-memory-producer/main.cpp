@@ -16,7 +16,16 @@ auto main(int argc, char** argv) ->int {
     auto [logger, app] = descriptor::example::utility::init_app(
         argc, argv, {shmem_filename_option}, "Test shared memory producer");
 
-    const std::string shmem_filename = app->get_option(shmem_filename_option)->as<std::string>();
+    std::string shmem_filename;
+
+    try {
+        shmem_filename = app->get_option("--shmem-filename")->as<std::string>();
+    }
+    catch (const CLI::OptionNotFound &onf) {
+        logger->critical(onf.what());
+        fmt::print(fg(fmt::color::crimson), "{}\n", onf.what());
+        return EXIT_FAILURE;
+    }
 
     descriptor::shared_memory shared_mem{};
 

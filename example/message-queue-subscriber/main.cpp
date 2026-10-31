@@ -98,7 +98,7 @@ auto main(int argc, char **argv)->int {
     std::signal(SIGTERM, signal_handler);
     std::signal(SIGINT, signal_handler);
 
-    const std::string message_queue_option{"-m,--message_queue"};
+    const std::string message_queue_option{"-m,--message-queue"};
 
     auto [logger, app] = descriptor::example::utility::init_app(
         argc, argv, {message_queue_option}, "Test CAN subscriber");
@@ -106,7 +106,7 @@ auto main(int argc, char **argv)->int {
     std::string message_queue_name{};
 
     try {
-        message_queue_name = app->get_option("--message_queue")->as<std::string>();
+        message_queue_name = app->get_option("--message-queue")->as<std::string>();
     }
     catch (const CLI::OptionNotFound &onf) {
         logger->critical(onf.what());

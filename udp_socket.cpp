@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 
 namespace descriptor {
 
@@ -47,17 +48,21 @@ std::error_code udp_socket::bind(std::string_view address, uint16_t port) noexce
         }
     }
 
+    bound_socket_ = false;
+
     if (::bind( descriptor_.load(),
                 static_cast<const struct sockaddr *>(static_cast<const void*>(&server_address)),
                 sizeof(server_address)) == -1) {
         return std::make_error_code(static_cast<std::errc>(errno));
     }
 
+    bound_socket_ = true;
+
     return {};
 }
 
 expected_result udp_socket::read_from(
-        std::span<std::byte> buffer, std::string &address, uint16_t &port) const noexcept {
+        std::span<std::byte> buffer, std::string &address, uint16_t &port) noexcept {
 
     if (descriptor_.load() != -1) {
         struct sockaddr_in peer_address{
@@ -75,6 +80,11 @@ expected_result udp_socket::read_from(
                         0,
                         static_cast<struct sockaddr *>(static_cast<void*>(&peer_address)),
                         &peer_address_length);
+
+        if (!bound_socket_) {
+            [[maybe_unused]] auto const close_result = ::close(descriptor_);
+            descriptor_ = -1;
+        }
 
         if (result == -1) {
             return std::unexpected(std::make_error_code(static_cast<std::errc>(errno)));
@@ -95,7 +105,7 @@ expected_result udp_socket::read_from(
 }
 
 expected_result udp_socket::write_to(
-        std::span<const std::byte> buffer, std::string_view address, uint16_t port) const noexcept {
+        std::span<const std::byte> buffer, std::string_view address, uint16_t port) noexcept {
     
     auto const descriptor = ::socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (descriptor == -1) {
@@ -115,6 +125,13 @@ expected_result udp_socket::write_to(
                 0,
                 static_cast<const struct sockaddr *>(static_cast<const void *>(&peer_address)),
                 sizeof(peer_address));
+
+    if (result != -1 && descriptor_.load() == -1) {
+        descriptor_ = descriptor;
+    }
+    else {
+        [[maybe_unused]] auto const close_result = ::close(descriptor);
+    }
 
     return result != -1 ? expected_result{result} 
                         : std::unexpected(std::make_error_code(static_cast<std::errc>(errno)));
