@@ -39,25 +39,38 @@ auto main(int argc, char **argv)->int {
     auto [logger, app] = descriptor::example::utility::init_app(
         argc, argv, {server_address_option, server_port_option}, "Test TCP server");
     
-    const std::string server_address = app->get_option(server_address_option)->as<std::string>();
-    const uint16_t server_port = app->get_option(server_port_option)->as<uint16_t>();
+    std::string server_address{};
+    uint16_t server_port{};
+    
+    try {
+        server_address = app->get_option("--address")->as<std::string>();
+        server_port = app->get_option("--port")->as<uint16_t>();
+    }
+    catch (const CLI::OptionNotFound &onf) {
+        logger->critical(onf.what());
+        fmt::print(fg(fmt::color::crimson), "{}\n", onf.what());
+        return EXIT_FAILURE;
+    }    
 
     descriptor::tcp_socket server{};
     g_server = &server;
+
+    logger->info("Binding to {}:{}", server_address, server_port);
+    fmt::println("Binding to {}:{}", server_address, server_port);
 
     auto result = server.bind(server_address, server_port);
     if (result) {
         logger->error("Bind failed; {} '{}'", result.value(), result.message());
     }
     else {
-        logger->info("Server bound to {}:{}", server_address, server_port);
+        fmt::println("Server bound to {}:{}", server_address, server_port);
 
         result = server.listen();
         if (result) {
             logger->error("Listen failed; {} '{}'", result.value(), result.message());
         }
         else {
-            logger->info("Server listening on {}:{}", server_address, server_port);
+            fmt::println("Server listening on {}:{}", server_address, server_port);
             
             auto accept_result = server.accept();
             
@@ -85,7 +98,7 @@ auto main(int argc, char **argv)->int {
                             ofs << response;
                             
                             logger->info("Received '{}'", response);
-#if 0
+#if 1
                             auto const write_result = acceptor.write(response.cbegin(), response.cend());
 
                             if (!write_result) {
@@ -95,7 +108,8 @@ auto main(int argc, char **argv)->int {
                             else {
                                 logger->info("Sent '{}'", response);
                             }
-#endif                            
+#endif
+                            ofs.flush();                            
                         }
                     } while (read_result.has_value() && read_result.value() > 0);
 

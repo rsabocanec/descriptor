@@ -38,7 +38,7 @@ auto main(int argc, char **argv)->int {
     std::string server_filename{};
 
     try {
-        server_filename = app->get_option("--server_file")->as<std::string>();
+        server_filename = app->get_option("--server-file")->as<std::string>();
     }
     catch (const CLI::OptionNotFound &onf) {
         logger->critical(onf.what());

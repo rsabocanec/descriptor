@@ -24,7 +24,13 @@ void signal_handler(int signal) {
         case SIGTERM:
 	    case SIGINT:
             run = false;
-	        ::unlink(fifo_path.c_str());
+            if (auto const result = descriptor::unlink(fifo_path)) {
+                fmt::print(fg(fmt::color::crimson), "Failed to unlink {} with result {}!\n", 
+                    fifo_path.c_str(), result.value());
+            }
+            else {
+                fmt::print(fg(fmt::color::green), "Successfully unlinked {}!\n", fifo_path);
+            }
             break;
         default:
             break;

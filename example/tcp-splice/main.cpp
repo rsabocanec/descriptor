@@ -18,30 +18,12 @@ auto main(int argc, char** argv)->int {
 
 
     std::string filename{};
-
-    try {
-        filename = app->get_option("--filename")->as<std::string>();
-    }
-    catch (const CLI::OptionNotFound &onf) {
-        logger->critical(onf.what());
-        fmt::print(fg(fmt::color::crimson), "{}\n", onf.what());
-        return EXIT_FAILURE;
-    }
-
     std::string address{};
-
-    try {
-        address = app->get_option("--address")->as<std::string>();
-    }
-    catch (const CLI::OptionNotFound &onf) {
-        logger->critical(onf.what());
-        fmt::print(fg(fmt::color::crimson), "{}\n", onf.what());
-        return EXIT_FAILURE;
-    }
-
     uint16_t port{};
 
     try {
+        filename = app->get_option("--filename")->as<std::string>();
+        address = app->get_option("--address")->as<std::string>();
         port = app->get_option("--port")->as<uint16_t>();
     }
     catch (const CLI::OptionNotFound &onf) {

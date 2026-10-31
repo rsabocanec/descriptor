@@ -17,7 +17,6 @@
 #include <sys/time.h>
 #include <poll.h>
 #include <signal.h>
-#include <err.h>
 
 #define _FILE_OFFSET_BITS 64
 #include <unistd.h>
